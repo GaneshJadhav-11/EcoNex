@@ -1,0 +1,760 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Recycler Portal</title>
+
+    <link rel="stylesheet" href="css/style.css">
+</head>
+
+<body class="app-page recycler-page">
+
+<div class="page">
+
+    <!-- HEADER -->
+    <div class="header app-header">
+        <div><a class="brand brand--small" href="recycler.html"><span class="brand-mark">E</span><span>EcoNex</span></a><p>Recycler workspace • authorised network</p></div>
+        <button class="quiet-btn" onclick="logout()">Log out</button>
+    </div>
+
+
+    <!-- RECYCLER REGISTRATION -->
+    <div class="card form-card">
+        <span class="section-kicker">ONBOARDING</span><h2>Recycler profile</h2>
+<div id="verificationBadge"></div>
+        <p>
+            Add your facility details for admin verification. Only verified recyclers can make offers.
+        </p>
+
+        <br>
+
+        <label>Recycler / Firm Name</label>
+
+        <input
+            type="text"
+            id="recyclerName"
+            placeholder="Enter recycler or firm name"
+        >
+
+
+        <label>Contact Number</label>
+
+        <input
+            type="tel"
+            id="recyclerContact"
+            placeholder="Enter contact number"
+        >
+
+
+        <label>Facility Location</label>
+
+        <input
+            type="text"
+            id="recyclerLocation"
+            placeholder="Enter facility location"
+        >
+
+
+        <label>Accepted Materials</label>
+
+        <input
+            type="text"
+            id="acceptedMaterials"
+            placeholder="e.g. PCB, Cable, Battery"
+        >
+
+
+        <label>Authorization / Registration Number</label>
+
+        <input
+            type="text"
+            id="authorizationNumber"
+            placeholder="Enter authorization number"
+        >
+<label>
+    Authorization Document
+</label>
+
+<input
+    type="file"
+    id="authorizationDocument"
+    accept=".pdf,.jpg,.jpeg,.png"
+>
+
+        <label>Pickup Availability</label>
+
+        <select id="pickupAvailability">
+
+            <option value="">
+                Select
+            </option>
+
+            <option value="Available">
+                Available
+            </option>
+
+            <option value="Not Available">
+                Not Available
+            </option>
+
+        </select>
+
+
+        <button
+            class="primary-btn"
+            onclick="saveRecyclerProfile()">
+
+            Save Recycler Profile
+
+        </button>
+
+
+        <p id="profileStatus"></p>
+
+    </div>
+
+
+    <!-- AVAILABLE LOTS -->
+
+    <div class="dashboard">
+
+        <div class="page-title"><div><span class="section-kicker">LIVE MARKETPLACE</span><h2>Available e-waste lots</h2><p>Review collector lots and submit a transparent offer.</p></div><div class="trust-chip">🛡 Verification required</div></div>
+
+        <div id="lotsContainer"></div>
+
+    </div>
+
+</div>
+
+
+<script>
+
+
+/* ===============================
+   SAVE RECYCLER PROFILE
+================================ */
+
+function saveRecyclerProfile() {
+
+    const name =
+        document.getElementById(
+            "recyclerName"
+        ).value.trim();
+
+
+    const contact =
+        document.getElementById(
+            "recyclerContact"
+        ).value.trim();
+
+
+    const location =
+        document.getElementById(
+            "recyclerLocation"
+        ).value.trim();
+
+
+    const materials =
+        document.getElementById(
+            "acceptedMaterials"
+        ).value.trim();
+
+
+    const authorization =
+        document.getElementById(
+            "authorizationNumber"
+        ).value.trim();
+
+
+    const pickup =
+        document.getElementById(
+            "pickupAvailability"
+        ).value;
+
+
+    const documentFile =
+        document.getElementById(
+            "authorizationDocument"
+        ).files[0];
+
+
+    if (
+        !name ||
+        !contact ||
+        !location ||
+        !materials ||
+        !authorization ||
+        !pickup
+    ) {
+
+        alert(
+            "Please complete all recycler details."
+        );
+
+        return;
+
+    }
+
+
+  function saveProfile(
+    documentData = null,
+    documentName = null
+) {
+
+    const existingProfile =
+        JSON.parse(
+            localStorage.getItem(
+                "recyclerProfile"
+            )
+        );
+
+
+    const recycler = {
+
+        id:
+            existingProfile
+            ?
+            existingProfile.id
+            :
+            "REC" + Date.now(),
+
+        name:
+            name,
+
+        contact:
+            contact,
+
+        location:
+            location,
+
+        acceptedMaterials:
+            materials,
+
+        authorizationNumber:
+            authorization,
+
+        documentName:
+    documentName !== null
+    ? documentName
+    : (existingProfile?.documentName || ""),
+
+documentData:
+    documentData !== null
+    ? documentData
+    : (existingProfile?.documentData || ""),
+
+        pickup:
+            pickup,
+
+        // Reset verification status so admin must verify any updated info
+        verificationStatus: "Pending Verification",
+
+        verifiedBy: "",
+        verifiedAt: "",
+        rejectionReason: "",
+
+        createdAt:
+            existingProfile
+            ?
+            existingProfile.createdAt
+            :
+            new Date().toLocaleString()
+    };
+
+
+    localStorage.setItem(
+        "recyclerProfile",
+        JSON.stringify(recycler)
+    );
+
+
+    document.getElementById(
+        "profileStatus"
+    ).innerHTML =
+        "🕐 Profile submitted for verification." +
+        "<br><strong>Status: Pending Verification</strong>";
+
+
+    loadLots();
+}
+
+    if (documentFile) {
+
+        const reader =
+            new FileReader();
+
+
+        reader.onload = function(event) {
+
+            saveProfile(
+                event.target.result,
+                documentFile.name
+            );
+
+        };
+
+
+        reader.readAsDataURL(
+            documentFile
+        );
+
+    }
+
+    else {
+
+        saveProfile();
+
+    }
+
+}
+
+
+/* ===============================
+   LOAD LOTS
+================================ */
+
+function loadLots() {
+
+    const lots =
+        JSON.parse(
+            localStorage.getItem("lots")
+        ) || [];
+
+
+    const container =
+        document.getElementById(
+            "lotsContainer"
+        );
+
+
+    container.innerHTML = "";
+
+
+    if (lots.length === 0) {
+
+        container.innerHTML = `
+
+            <div class="card">
+
+                <h3>No e-waste lots available.</h3>
+
+                <p>
+                    New collector lots will appear here.
+                </p>
+
+            </div>
+
+        `;
+
+        return;
+    }
+
+
+    const currentProfile = JSON.parse(localStorage.getItem("recyclerProfile"));
+
+    lots.forEach(lot => {
+
+        if (lot.status === "Handover Completed") return;
+
+        const existingOffers =
+            JSON.parse(
+                localStorage.getItem("offers")
+            ) || [];
+
+
+        const hasOffer = existingOffers.some(
+            offer => offer.lotId === lot.id && offer.recyclerId === currentProfile?.id
+        );
+
+
+        container.innerHTML += `
+
+            <div class="lot-card">
+
+                <h2>
+                    ${lot.id}
+                </h2>
+
+
+                <p>
+                    ♻️ Material:
+                    <strong>
+                        ${lot.material}
+                    </strong>
+                </p>
+
+
+                <p>
+                    ⚖️ Approx Weight:
+                    <strong>
+                        ${lot.weight} kg
+                    </strong>
+                </p>
+
+
+                <p>
+                    🔧 Condition:
+                    ${lot.condition}
+                </p>
+
+
+                <p>
+                    📍 Location:
+                    ${lot.location}
+                </p>
+${
+    lot.image
+    ?
+    `
+    <div style="margin:15px 0;">
+
+        <p>
+            <strong>📷 E-Waste Image:</strong>
+        </p>
+
+        <img
+            src="${lot.image}"
+            alt="E-Waste Image"
+            style="
+                width:220px;
+                max-width:100%;
+                height:160px;
+                object-fit:cover;
+                border-radius:10px;
+                border:1px solid #ccc;
+                cursor:pointer;
+            "
+            onclick="openLotImage('${lot.id}')"
+        >
+
+        <p style="font-size:13px;color:#666;">
+            Click image to view full size
+        </p>
+
+    </div>
+    `
+    :
+    `
+    <p>
+        📷 No image uploaded
+    </p>
+    `
+}
+                <p>
+                    🕐 Created:
+                    ${lot.createdAt}
+                </p>
+
+
+                <p>
+                    📌 Status:
+                    <strong>
+                        ${lot.status}
+                    </strong>
+                </p>
+
+
+                ${
+                    hasOffer
+
+                    ?
+
+                    `
+
+                    <div class="success-box">
+
+                        ✅ Offer already submitted
+                        for this lot.
+
+                    </div>
+
+                    `
+
+                    :
+
+                    `
+
+                    <hr>
+
+                    <h3>
+                        Submit Your Offer
+                    </h3>
+
+
+                    <label>
+                        Price per kg (₹)
+                    </label>
+
+                    <input
+                        type="number"
+                        id="price-${lot.id}"
+                        placeholder="Enter your offer"
+                        min="0"
+                    >
+
+
+                    <label>
+                        Pickup Availability
+                    </label>
+
+                    <select
+                        id="pickup-${lot.id}">
+
+                        <option value="">
+                            Select
+                        </option>
+
+                        <option value="Available">
+                            Available
+                        </option>
+
+                        <option value="Not Available">
+                            Not Available
+                        </option>
+
+                    </select>
+
+
+                    <button
+                        class="primary-btn"
+                        onclick="
+                            submitOffer('${lot.id}')
+                        ">
+
+                        Submit Offer
+
+                    </button>
+
+                    `
+
+                }
+
+            </div>
+
+        `;
+
+    });
+
+}
+function openLotImage(lotId) {
+    const lots = JSON.parse(localStorage.getItem("lots")) || [];
+    const lot = lots.find(l => l.id === lotId);
+
+    if (!lot || !lot.image) {
+        alert("Image not found.");
+        return;
+    }
+
+    window.open(lot.image, "_blank");
+}
+
+function showVerificationStatus() {
+
+    const badge = document.getElementById("verificationBadge");
+
+    const profile =
+        JSON.parse(localStorage.getItem("recyclerProfile"));
+
+    if (!profile) {
+
+        badge.innerHTML = `
+            <div class="danger-box">
+                ⚠️ Recycler profile not found.
+            </div>
+        `;
+
+        return;
+    }
+
+    if (profile.verificationStatus === "Verified") {
+
+        badge.innerHTML = `
+            <div class="success-box">
+                <h3>🟢 ✓ VERIFIED RECYCLER</h3>
+                <p>Your recycler account has been verified by Admin.</p>
+            </div>
+        `;
+
+    }
+
+    else if (profile.verificationStatus === "Rejected") {
+
+        badge.innerHTML = `
+            <div class="danger-box">
+                <h3>🔴 ✕ RECYCLER REJECTED</h3>
+                <p>
+                    Reason:
+                    ${profile.rejectionReason || "Not specified"}
+                </p>
+            </div>
+        `;
+
+    }
+
+    else {
+
+        badge.innerHTML = `
+            <div class="warning-box">
+                <h3>🟠 ⏳ PENDING VERIFICATION</h3>
+                <p>Your account is waiting for Admin verification.</p>
+            </div>
+        `;
+    }
+}
+
+/* ===============================
+   LOGOUT
+================================ */
+
+function logout() {
+
+    localStorage.removeItem(
+        "currentRole"
+    );
+
+    window.location.href =
+        "index.html";
+
+}
+
+
+/* ===============================
+   LOAD SAVED PROFILE
+================================ */
+
+function loadProfile() {
+
+    const profile =
+        JSON.parse(
+            localStorage.getItem(
+                "recyclerProfile"
+            )
+        );
+
+
+    if (!profile) return;
+
+
+    document.getElementById(
+        "recyclerName"
+    ).value =
+        profile.name;
+
+
+    document.getElementById(
+        "recyclerContact"
+    ).value =
+        profile.contact;
+
+
+    document.getElementById(
+        "recyclerLocation"
+    ).value =
+        profile.location;
+
+
+    document.getElementById(
+        "acceptedMaterials"
+    ).value =
+        profile.acceptedMaterials;
+
+
+    document.getElementById(
+        "authorizationNumber"
+    ).value =
+        profile.authorizationNumber;
+
+
+    document.getElementById(
+        "pickupAvailability"
+    ).value =
+        profile.pickup;
+
+
+    document.getElementById(
+        "profileStatus"
+    ).innerHTML =
+
+        "Verification Status: " +
+
+        `<strong>
+            ${profile.verificationStatus}
+        </strong>`;
+
+}
+
+
+loadProfile();
+showVerificationStatus();
+loadLots();
+function submitOffer(lotId) {
+    const profile = JSON.parse(localStorage.getItem("recyclerProfile"));
+
+    if (!profile) {
+        alert("Please register your recycler profile first.");
+        return;
+    }
+
+    if (profile.verificationStatus !== "Verified") {
+        alert("Your recycler account is not verified yet.");
+        return;
+    }
+
+    const priceInput = document.getElementById(`price-${lotId}`);
+    const pickupInput = document.getElementById(`pickup-${lotId}`);
+
+    const price = Number(priceInput.value);
+    const pickup = pickupInput.value;
+
+    if (!price || price <= 0) {
+        alert("Please enter a valid price.");
+        return;
+    }
+
+    if (!pickup) {
+        alert("Please select pickup availability.");
+        return;
+    }
+
+    const offers = JSON.parse(localStorage.getItem("offers")) || [];
+
+    if (offers.some(offer => offer.lotId === lotId && offer.recyclerId === profile.id)) {
+        alert("You have already submitted an offer for this lot.");
+        return;
+    }
+
+    const newOffer = {
+        id: "OFFER" + Date.now(),
+        lotId: lotId,
+        recycler: profile.name,
+        recyclerId: profile.id,
+        price: price,
+        pickup: pickup,
+        createdAt: new Date().toLocaleString()
+    };
+
+    offers.push(newOffer);
+
+    localStorage.setItem("offers", JSON.stringify(offers));
+
+    const lots = JSON.parse(localStorage.getItem("lots")) || [];
+    const lot = lots.find(lot => lot.id === lotId);
+
+    if (lot) {
+        lot.status = "Offer Received";
+        localStorage.setItem("lots", JSON.stringify(lots));
+    }
+
+    alert("Offer submitted successfully!");
+
+    loadLots();
+}
+</script>
+
+<script src="js/i18n.js"></script>
+</body>
+
+</html>

@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Recycler Offers</title>
+
+    <link rel="stylesheet" href="css/style.css">
+</head>
+
+<body class="app-page offers-page">
+
+<div class="page">
+
+    <div class="header app-header"><div><a class="brand brand--small" href="collector.html"><span class="brand-mark">E</span><span>EcoNex</span></a><p>Price board • मूल्य सूची</p></div><button class="quiet-btn" onclick="location.href='collector.html'">← Dashboard</button></div>
+
+
+    <div class="dashboard">
+
+        <div class="page-title"><div><span class="section-kicker">VERIFIED RECYCLERS</span><h2>Offers for your lots</h2><p>Compare price, pickup and recycler before you decide.</p></div><div class="trust-chip">✓ Authorised network</div></div>
+
+        <div id="offersContainer"></div>
+
+    </div>
+
+</div>
+
+
+<script>
+
+function loadOffers() {
+
+    const offers =
+        JSON.parse(
+            localStorage.getItem("offers")
+        ) || [];
+
+
+    const lots =
+        JSON.parse(
+            localStorage.getItem("lots")
+        ) || [];
+
+    const recyclerProfile =
+        JSON.parse(localStorage.getItem("recyclerProfile"));
+
+
+    const container =
+        document.getElementById(
+            "offersContainer"
+        );
+
+
+    container.innerHTML = "";
+
+
+    const activeOffers = offers.filter(offer => {
+        const lot = lots.find(item => item.id === offer.lotId);
+        return lot && lot.status !== "Handover Completed";
+    });
+
+    if (activeOffers.length === 0) {
+
+        container.innerHTML = `
+
+            <div class="card">
+
+                <h3>No offers yet</h3>
+
+                <p>
+                    Ask recyclers to submit
+                    their price offers.
+                </p>
+
+            </div>
+
+        `;
+
+        return;
+    }
+
+
+    activeOffers
+        .slice()
+        .sort((first, second) => Number(second.price) - Number(first.price))
+        .forEach(offer => {
+
+        const lot =
+            lots.find(
+                l => l.id === offer.lotId
+            );
+
+
+        if (!lot) return;
+
+
+        const totalValue =
+            offer.price * lot.weight;
+
+        const recyclerData = recyclerProfile && recyclerProfile.id === offer.recyclerId
+            ? recyclerProfile
+            : null;
+        const acceptedMaterials = recyclerData?.acceptedMaterials || "Not available";
+        const compatible = recyclerData
+            ? acceptedMaterials.toLowerCase().includes(lot.material.toLowerCase())
+            : null;
+        const verification = recyclerData?.verificationStatus || "Status unavailable";
+
+
+        container.innerHTML += `
+
+            <div class="offer-card">
+
+                <h2>
+                    ${offer.recycler}
+                </h2>
+
+                <p>
+                    📦 Lot:
+                    <strong>${lot.id}</strong>
+                </p>
+
+                <p>
+                    ♻️ Material:
+                    <strong>${lot.material}</strong>
+                </p>
+
+                <p>
+                    ⚖️ Weight:
+                    <strong>${lot.weight} kg</strong>
+                </p>
+
+                <p>
+                    💰 Offer:
+                    <strong>₹${offer.price}/kg</strong>
+                </p>
+
+                <p>
+                    💵 Estimated Value:
+                    <strong>₹${totalValue}</strong>
+                </p>
+
+                <p>
+                    🚚 Pickup:
+                    <strong>${offer.pickup}</strong>
+                </p>
+
+                <p>🛡 Verification: <strong>${verification}</strong></p>
+                <p>♻️ Material match: <strong>${compatible === null ? "Check with recycler" : compatible ? "Accepted" : "Needs confirmation"}</strong></p>
+                <p>📍 Distance: <strong>Not available in this local prototype</strong></p>
+
+                <p>
+                    🕐 ${offer.createdAt}
+                </p>
+
+
+                <button
+                    class="primary-btn"
+                    onclick="selectOffer(
+                        '${offer.id}'
+                    )">
+
+                    Select This Offer
+
+                </button>
+
+            </div>
+
+        `;
+
+    });
+
+}
+
+
+function selectOffer(offerId) {
+
+    const offers =
+        JSON.parse(
+            localStorage.getItem("offers")
+        ) || [];
+
+
+    const selectedOffer =
+        offers.find(
+            o => o.id === offerId
+        );
+
+
+    if (!selectedOffer) {
+
+        alert("Offer not found.");
+
+        return;
+    }
+
+
+    localStorage.setItem(
+        "selectedOffer",
+        JSON.stringify(selectedOffer)
+    );
+
+    const lots = JSON.parse(localStorage.getItem("lots")) || [];
+    const lot = lots.find(item => item.id === selectedOffer.lotId);
+    if (lot) {
+        lot.selectedOfferId = selectedOffer.id;
+        lot.selectedRecyclerId = selectedOffer.recyclerId;
+        lot.status = "Offer Selected";
+        localStorage.setItem("lots", JSON.stringify(lots));
+    }
+
+
+    alert(
+        "Recycler selected successfully!"
+    );
+
+
+    window.location.href =
+        "handover.html";
+
+}
+
+
+loadOffers();
+
+</script>
+
+<script src="js/i18n.js"></script>
+</body>
+
+</html>

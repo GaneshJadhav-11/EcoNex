@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+<meta charset="UTF-8">
+
+<meta name="viewport"
+      content="width=device-width, initial-scale=1.0">
+
+<title>Create E-Waste Lot</title>
+
+<link rel="stylesheet"
+      href="css/style.css">
+
+</head>
+
+
+<body class="app-page form-page">
+
+<div class="page">
+<div class="header app-header"><div><a class="brand brand--small" href="collector.html"><span class="brand-mark">E</span><span>EcoNex</span></a><p>New collection • नया कलेक्शन</p></div><button class="quiet-btn" onclick="location.href='collector.html'">← Dashboard</button></div>
+<div class="card form-card">
+
+<span class="section-kicker">STEP 1 OF 1</span><h1>Create a new lot</h1>
+<p class="form-intro">Add only the details you know. You can complete this offline and sync later.</p>
+
+<div class="photo-drop"><span>📷</span><div><strong>Photograph the e-waste</strong><small>A clear photo helps with the estimate</small></div><input type="file" id="photo" accept="image/*" capture="environment" aria-label="Upload e-waste photo"></div>
+<div class="image-preview" id="imagePreview" hidden><img id="previewImage" alt="Selected e-waste preview"><button type="button" class="quiet-btn" onclick="clearImage()">Remove photo</button></div>
+
+
+<label>What have you collected? <span class="label-hindi">क्या इकट्ठा किया?</span></label>
+
+<select id="material">
+
+<option value="">
+Select a material
+</option>
+
+<option>PCB</option>
+<option>Cable</option>
+<option>Battery</option>
+<option>LCD</option>
+<option>CRT</option>
+<option>Motor</option>
+<option>Plastic</option>
+<option>Mixed E-Waste</option>
+
+</select>
+
+<label>Short description <span class="label-hindi">(optional)</span></label>
+<textarea id="description" placeholder="e.g. Mixed cables, old computer parts"></textarea>
+
+
+<label>Approximate weight (kg)</label>
+
+<input
+    type="number"
+    id="weight"
+    placeholder="e.g. 4.5"
+    min="0"
+>
+
+
+<label>Condition</label>
+
+<select id="condition">
+
+<option>Good</option>
+<option>Used</option>
+<option>Damaged</option>
+<option>Mixed</option>
+
+</select>
+
+
+<label>Collection location</label>
+
+<input
+    type="text"
+    id="location"
+    placeholder="Tap below to capture location"
+    readonly
+>
+
+
+<button
+    class="primary-btn"
+    onclick="getLocation()">
+
+📍 Capture my location
+
+</button>
+
+
+<button
+    class="primary-btn"
+    onclick="createLot()">
+
+Create lot & see offers →
+
+</button>
+
+
+<p class="form-footnote">🔒 Location is used only to find nearby verified recyclers.</p><p id="message"></p>
+
+</div>
+
+</div>
+
+
+<script>
+
+let detectedCoordinates = null;
+
+document.getElementById("photo").addEventListener("change", function () {
+    const file = this.files[0];
+    const preview = document.getElementById("imagePreview");
+    if (!file) { preview.hidden = true; return; }
+    if (!file.type.startsWith("image/")) {
+        this.value = "";
+        preview.hidden = true;
+        document.getElementById("message").innerText = "Please choose an image file.";
+        return;
+    }
+    const reader = new FileReader();
+    reader.onload = event => {
+        document.getElementById("previewImage").src = event.target.result;
+        preview.hidden = false;
+        document.getElementById("message").innerText = "Photo ready to add to this lot.";
+    };
+    reader.readAsDataURL(file);
+});
+
+function clearImage() {
+    document.getElementById("photo").value = "";
+    document.getElementById("previewImage").removeAttribute("src");
+    document.getElementById("imagePreview").hidden = true;
+}
+
+async function getLocation() {
+
+    const message = document.getElementById("message");
+    const locationInput = document.getElementById("location");
+
+    try {
+
+        // Request Android location permission
+        const permission = await Capacitor.Plugins.Geolocation.requestPermissions();
+
+        if (permission.location !== "granted") {
+
+            message.innerText =
+                "Please allow location access and try again.";
+
+            return;
+        }
+
+        // Get current GPS location
+        const position =
+            await Capacitor.Plugins.Geolocation.getCurrentPosition({
+                enableHighAccuracy: true,
+                timeout: 15000,
+                maximumAge: 0
+            });
+
+        const lat = position.coords.latitude;
+        const lon = position.coords.longitude;
+
+        detectedCoordinates = {
+            latitude: lat,
+            longitude: lon
+        };
+
+        locationInput.value =
+            lat.toFixed(5) + ", " + lon.toFixed(5);
+
+        message.innerText =
+            "✓ Location detected successfully.";
+
+    } catch (error) {
+
+        console.error("Location error:", error);
+
+        message.innerText =
+            "Location could not be detected. Please check GPS and try again.";
+    }
+}
+
+
+window.createLot = function() {
+
+    const material =
+        document.getElementById("material").value;
+
+    const weight =
+        document.getElementById("weight").value;
+
+    const condition =
+        document.getElementById("condition").value;
+
+    const description = document.getElementById("description").value.trim();
+
+    const location =
+        document.getElementById("location").value;
+
+    const photoFile =
+        document.getElementById("photo").files[0];
+
+
+    if (!photoFile) {
+        alert("Please add an e-waste photo before creating the lot.");
+        return;
+    }
+
+    if (!material || !weight || Number(weight) <= 0) {
+        alert("Please select a material and enter a valid weight.");
+        return;
+    }
+
+    if (!location || !detectedCoordinates) {
+        alert("Please detect your collection location before creating the lot.");
+        return;
+    }
+
+    const saveLot = function(image = "") {
+        const lot = {
+            id: "LOT-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 6).toUpperCase(),
+            material: material,
+            weight: Number(weight),
+            condition: condition,
+            description: description,
+            location: location,
+            latitude: detectedCoordinates.latitude,
+            longitude: detectedCoordinates.longitude,
+            image: image,
+            createdAt: new Date().toLocaleString(),
+            status: "Waiting for Recycler Offers"
+        };
+
+        const lots = JSON.parse(localStorage.getItem("lots")) || [];
+        lots.push(lot);
+        try {
+            localStorage.setItem("lots", JSON.stringify(lots));
+        } catch (error) {
+            if (error.name === "QuotaExceededError") {
+                alert("Storage is full. Please clear old test lots and try again.");
+                return;
+            }
+            throw error;
+        }
+        alert("Lot created successfully!\n\nLot ID: " + lot.id);
+        window.location.href = "offers.html";
+    };
+
+    const reader = new FileReader();
+
+    reader.onload = function(event) {
+
+        const img = new Image();
+
+        img.onload = function() {
+
+            const canvas = document.createElement("canvas");
+
+            const MAX_WIDTH = 800;
+            const MAX_HEIGHT = 800;
+
+            let width = img.width;
+            let height = img.height;
+
+
+            // Resize image
+            if (width > MAX_WIDTH) {
+
+                height =
+                    height * (MAX_WIDTH / width);
+
+                width = MAX_WIDTH;
+            }
+
+            if (height > MAX_HEIGHT) {
+
+                width =
+                    width * (MAX_HEIGHT / height);
+
+                height = MAX_HEIGHT;
+            }
+
+
+            canvas.width = width;
+            canvas.height = height;
+
+
+            const ctx =
+                canvas.getContext("2d");
+
+            ctx.drawImage(
+                img,
+                0,
+                0,
+                width,
+                height
+            );
+
+
+            // Convert to compressed JPEG
+            const compressedImage =
+                canvas.toDataURL(
+                    "image/jpeg",
+                    0.6
+                );
+
+
+            saveLot(compressedImage);
+        };
+        img.onerror = function() { alert("This photo could not be read. Please choose another image."); };
+        img.src = event.target.result;
+    };
+
+
+    reader.readAsDataURL(photoFile);
+};
+
+</script>
+
+<script src="js/capacitor.js"></script>
+<script src="js/geolocation.js"></script>
+<script src="js/i18n.js"></script>
+</body>
+
+</html>

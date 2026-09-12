@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
+
+    <title>My Dashboard | EcoNex</title>
+
+    <link rel="stylesheet"
+          href="css/style.css">
+
+</head>
+
+
+<body class="app-page collector-page">
+
+<div class="page">
+
+    <div class="header app-header">
+        <div><a class="brand brand--small" href="collector.html"><span class="brand-mark">E</span><span>EcoNex</span></a><p>Collector workspace • कलेक्टर डैशबोर्ड</p></div>
+        <button class="quiet-btn" onclick="location.href='index.html'">Log out</button>
+    </div>
+
+
+    <div class="dashboard">
+
+        <div class="welcome welcome--dashboard">
+            <div><span class="eyebrow eyebrow--solid">COLLECT • CONNECT • CASH IN</span><h2>Every scrap lot has<br><em>serious value.</em></h2><p>See live offers from verified recyclers near you.</p></div>
+        </div>
+
+
+        <div class="stats">
+
+            <div class="stat-card">
+
+                <h3>Active lots</h3>
+
+                <p id="totalLots">0</p>
+
+            </div>
+
+            <div class="stat-card">
+                <h3>Pending offers</h3>
+                <p id="pendingOffers">0</p>
+            </div>
+
+
+            <div class="stat-card">
+
+                <h3>Safe handovers</h3>
+
+                <p id="completedLots">0</p>
+
+            </div>
+
+
+            <div class="stat-card">
+
+                <h3>Total earnings</h3>
+
+                <p id="totalEarnings">₹0</p>
+
+            </div>
+
+        </div>
+
+
+        <div class="grid">
+
+            <div class="action-card">
+
+                <span class="action-icon">⌁</span><h3>Create a lot</h3><p>Take a photo, add weight and get a fair value estimate.</p>
+
+                <button onclick="location.href='create-lot.html'">
+
+                    Add e-waste →
+
+                </button>
+
+            </div>
+
+
+            <div class="action-card">
+
+                <span class="action-icon action-icon--gold">₹</span><h3>Compare offers</h3><p>Choose the best price from authorised recyclers.</p>
+
+                <button onclick="location.href='offers.html'">
+
+                    See recycler offers →
+
+                </button>
+
+            </div>
+
+
+            <div class="action-card">
+
+                <span class="action-icon action-icon--blue">✓</span><h3>Digital handover</h3><p>Keep a verified record of every handover.</p>
+
+                <button onclick="location.href='handover.html'">
+
+                    Open handover →
+
+                </button>
+
+            </div>
+
+
+            <div class="action-card">
+
+                <span class="action-icon action-icon--purple">▤</span><h3>Earnings ledger</h3><p>Track money received and your transaction history.</p>
+
+                <button onclick="location.href='earnings.html'">
+
+                    View my ledger →
+
+                </button>
+
+            </div>
+
+        </div>
+
+        <section class="safety-section" aria-labelledby="safetyTitle">
+            <div class="safety-section__heading"><span class="section-kicker">SAFETY FIRST</span><h2 id="safetyTitle">Handle e-waste safely</h2><p>Protect yourself, your family, and valuable materials.</p></div>
+            <div class="safety-grid">
+                <article><span>🔋</span><h3>Batteries</h3><p>Keep dry, do not crush, and keep away from heat.</p></article>
+                <article><span>▦</span><h3>PCBs</h3><p>Store boards intact. Do not break or burn them.</p></article>
+                <article><span>🔥</span><h3>No open burning</h3><p>Burning cables releases dangerous smoke and loses value.</p></article>
+                <article><span>🧪</span><h3>No acid leaching</h3><p>Use only authorised recyclers for safe recovery.</p></article>
+            </div>
+        </section>
+
+    </div>
+
+</div>
+
+
+<script>
+
+function updateDashboard() {
+
+    const lots =
+        JSON.parse(localStorage.getItem("lots")) || [];
+
+    const transactions =
+        JSON.parse(localStorage.getItem("transactions")) || [];
+
+    const offers =
+        JSON.parse(localStorage.getItem("offers")) || [];
+
+
+    document.getElementById("totalLots")
+        .innerText = lots.filter(lot => lot.status !== "Handover Completed").length;
+
+    const pendingOfferLots = new Set(
+        offers
+            .filter(offer => lots.some(lot => lot.id === offer.lotId && lot.status !== "Handover Completed"))
+            .map(offer => offer.lotId)
+    );
+
+    document.getElementById("pendingOffers")
+        .innerText = pendingOfferLots.size;
+
+
+    document.getElementById("completedLots")
+        .innerText = transactions.length;
+
+
+    let total = 0;
+
+    transactions.forEach(t => {
+
+        total += Number(t.amount || 0);
+
+    });
+
+
+    document.getElementById("totalEarnings")
+        .innerText = "₹" + total;
+
+}
+
+updateDashboard();
+
+</script>
+
+<script src="js/i18n.js"></script>
+</body>
+
+</html>

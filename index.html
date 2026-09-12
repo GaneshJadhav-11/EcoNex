@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>EcoNex | Kabadiwala Connect</title>
+
+    <link rel="stylesheet" href="css/style.css">
+</head>
+
+<body>
+
+    <main class="landing-page">
+        <nav class="brand-bar" aria-label="EcoNex navigation">
+            <a class="brand" href="index.html"><span class="brand-mark">E</span><span>EcoNex</span></a>
+            <button class="language-chip" id="languageButton" type="button" aria-haspopup="true" aria-expanded="false">EN ▾</button>
+        </nav>
+
+        <section class="hero hero--landing">
+            <div class="eyebrow"><span class="pulse-dot"></span> INDIA’S FAIR E-WASTE MOVEMENT</div>
+            <div class="hero-orbit hero-orbit--one">₹</div><div class="hero-orbit hero-orbit--two">♻</div>
+            <h1>Scrap is <em>power.</em><br>Own your <span>value.</span></h1>
+            <p>EcoNex turns every cable, battery and board into a fair deal — with live rates, verified buyers and proof of every handover.</p>
+            <div class="hero-proof">
+                <span>✓ Fair prices</span><span>✓ Verified recyclers</span><span>✓ Works offline</span>
+            </div>
+        </section>
+
+        <div class="impact-strip" aria-label="EcoNex impact">
+            <div><strong>₹</strong><span>Know the<br>real rate</span></div><div><strong>⌁</strong><span>Find a safe<br>buyer nearby</span></div><div><strong>✓</strong><span>Keep proof of<br>every deal</span></div>
+        </div>
+
+        <section class="role-panel" aria-labelledby="role-title">
+            <div class="role-panel__heading">
+                <span class="section-kicker">GET STARTED</span>
+                <h2 id="role-title">Choose your workspace</h2>
+                <p>अपनी भूमिका चुनें</p>
+            </div>
+            <div class="role-options">
+                <button class="role-option role-option--collector" onclick="collectorLogin()">
+                    <span class="role-icon">♻</span><span class="role-copy"><strong>I’m a collector</strong><small>Lots, offers and earnings</small></span><span class="role-arrow">→</span>
+                </button>
+                <button class="role-option" onclick="recyclerLogin()">
+                    <span class="role-icon">▣</span><span class="role-copy"><strong>I’m a recycler</strong><small>Review lots and make offers</small></span><span class="role-arrow">→</span>
+                </button>
+            </div>
+            <button class="admin-access" type="button" onclick="location.href='admin.html'">
+                <span>🛡</span><span><strong>Admin portal</strong><small>Verify recycler registrations</small></span><b>→</b>
+            </button>
+        </section>
+        <p class="landing-footer">Built for the hands that keep India circular. <strong>#KabadiwalaConnect</strong></p>
+    </main>
+
+
+    <script src="js/i18n.js"></script>
+    <script src="js/app.js"></script>
+
+</body>
+
+</html>

@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
+
+    <title>Digital Handover</title>
+
+    <link rel="stylesheet"
+          href="css/style.css">
+
+</head>
+
+
+<body class="app-page form-page">
+
+<div class="page"><div class="header app-header"><div><a class="brand brand--small" href="collector.html"><span class="brand-mark">E</span><span>EcoNex</span></a><p>Verified transfer • सत्यापित हस्तांतरण</p></div><button class="quiet-btn" onclick="location.href='collector.html'">← Dashboard</button></div>
+    <div class="card form-card">
+        <span class="section-kicker">SECURE HANDOVER</span><h1>Confirm your handover</h1><p class="form-intro">Check the final weight and price. This creates a traceable recycling record.</p>
+
+
+        <div id="handoverDetails"></div>
+
+    </div>
+
+</div>
+
+
+<script>
+
+function loadHandover() {
+
+    const selectedOffer =
+        JSON.parse(
+            localStorage.getItem(
+                "selectedOffer"
+            )
+        );
+
+
+    const lots =
+        JSON.parse(
+            localStorage.getItem("lots")
+        ) || [];
+
+
+    const container =
+        document.getElementById(
+            "handoverDetails"
+        );
+
+
+    if (!selectedOffer) {
+
+        container.innerHTML = `
+
+            <h3>No recycler selected.</h3>
+
+            <br>
+
+            <button
+                class="primary-btn"
+                onclick="
+                    location.href='offers.html'
+                ">
+
+                View Offers
+
+            </button>
+
+        `;
+
+        return;
+    }
+
+
+    const lot =
+        lots.find(
+            l =>
+                l.id ===
+                selectedOffer.lotId
+        );
+
+
+    if (!lot) {
+        container.innerHTML = "<p>Lot information not found. Please select an offer again.</p>";
+        localStorage.removeItem("selectedOffer");
+
+        return;
+    }
+
+
+    const estimatedValue =
+        selectedOffer.price *
+        lot.weight;
+
+
+    container.innerHTML = `
+
+        <div class="lot-card">
+
+            <h2>Transaction Details</h2>
+
+            <hr>
+
+            <p>
+                <strong>Lot ID:</strong>
+                ${lot.id}
+            </p>
+
+            <p><strong>Collector:</strong> Collector account</p>
+
+            <p>
+                <strong>Material:</strong>
+                ${lot.material}
+            </p>
+
+            <p>
+                <strong>Approx Weight:</strong>
+                ${lot.weight} kg
+            </p>
+
+            ${lot.description ? `<p><strong>Description:</strong> ${lot.description}</p>` : ""}
+
+            <p>
+                <strong>Recycler:</strong>
+                ${selectedOffer.recycler}
+            </p>
+
+            <p>
+                <strong>Offer Price:</strong>
+                ₹${selectedOffer.price}/kg
+            </p>
+
+            <p>
+                <strong>Estimated Value:</strong>
+                ₹${estimatedValue}
+            </p>
+
+            <p>
+                <strong>Pickup:</strong>
+                ${selectedOffer.pickup}
+            </p>
+
+            <p><strong>Collection location:</strong> ${lot.location}</p>
+            <p><strong>Created:</strong> ${lot.createdAt}</p>
+            <p><strong>Handover status:</strong> Ready for collector confirmation</p>
+
+        </div>
+
+
+        <label>
+            Final Weight at Handover (kg)
+        </label>
+
+        <input
+            type="number"
+            id="finalWeight"
+            placeholder="Enter final weight"
+            value="${lot.weight}"
+            min="0"
+        >
+
+
+        <label>
+            Final Price (₹/kg)
+        </label>
+
+        <input
+            type="number"
+            id="finalPrice"
+            value="${selectedOffer.price}"
+            min="0"
+        >
+
+
+        <br>
+
+
+        <button
+            class="primary-btn"
+            onclick="getLocation()">
+
+            📍 Capture GPS Location
+
+        </button>
+
+
+        <p id="gpsStatus">
+            Location not captured
+        </p>
+
+
+        <button
+            class="primary-btn"
+            onclick="confirmHandover()">
+
+            ✅ Confirm Digital Handover
+
+        </button>
+
+
+        <p id="message"></p>
+
+    `;
+
+}
+
+
+let handoverLocation = "";
+
+
+function getLocation() {
+
+    if (!navigator.geolocation) {
+
+        alert(
+            "GPS is not supported by this browser."
+        );
+
+        return;
+    }
+
+
+    navigator.geolocation.getCurrentPosition(
+
+        function(position) {
+
+            const lat =
+                position.coords.latitude;
+
+            const lon =
+                position.coords.longitude;
+
+
+            handoverLocation =
+                lat.toFixed(6) +
+                ", " +
+                lon.toFixed(6);
+
+
+            document.getElementById(
+                "gpsStatus"
+            ).innerText =
+                "📍 GPS Captured: " +
+                handoverLocation;
+
+        },
+
+        function() {
+
+            alert(
+                "Please allow location permission."
+            );
+
+        }
+
+    );
+
+}
+
+
+function confirmHandover() {
+
+    const selectedOffer =
+        JSON.parse(
+            localStorage.getItem(
+                "selectedOffer"
+            )
+        );
+
+
+    if (!selectedOffer) {
+
+        alert(
+            "No offer selected."
+        );
+
+        return;
+    }
+
+
+    const finalWeight =
+        Number(
+            document.getElementById(
+                "finalWeight"
+            ).value
+        );
+
+
+    const finalPrice =
+        Number(
+            document.getElementById(
+                "finalPrice"
+            ).value
+        );
+
+
+    if (
+        !finalWeight ||
+        !finalPrice
+    ) {
+
+        alert(
+            "Please enter final weight and price."
+        );
+
+        return;
+    }
+
+
+    const lots =
+        JSON.parse(
+            localStorage.getItem("lots")
+        ) || [];
+
+
+    const lot =
+        lots.find(
+            l =>
+                l.id ===
+                selectedOffer.lotId
+        );
+
+    if (!lot) {
+        alert("Lot information is unavailable. Please choose an offer again.");
+        localStorage.removeItem("selectedOffer");
+        window.location.href = "offers.html";
+        return;
+    }
+
+    const transactions = JSON.parse(localStorage.getItem("transactions")) || [];
+    if (transactions.some(transaction => transaction.lotId === lot.id)) {
+        alert("This lot has already been handed over.");
+        localStorage.removeItem("selectedOffer");
+        window.location.href = "earnings.html";
+        return;
+    }
+
+
+    const amount =
+        finalWeight *
+        finalPrice;
+
+
+    const transaction = {
+
+        transactionId:
+            "TXN" + Date.now(),
+
+        lotId:
+            lot.id,
+
+        material:
+            lot.material,
+
+        recycler:
+            selectedOffer.recycler,
+
+        collector: "Collector account",
+
+        finalWeight:
+            finalWeight,
+
+        finalPrice:
+            finalPrice,
+
+        amount:
+            amount,
+
+        location:
+            handoverLocation ||
+            lot.location,
+
+        timestamp:
+            new Date().toLocaleString(),
+
+        status:
+            "Completed"
+
+    };
+
+
+    transactions.push(
+        transaction
+    );
+
+
+    localStorage.setItem(
+        "transactions",
+        JSON.stringify(
+            transactions
+        )
+    );
+
+    lot.status = "Handover Completed";
+    lot.handoverAt = transaction.timestamp;
+    lot.finalValue = amount;
+    localStorage.setItem("lots", JSON.stringify(lots));
+
+
+    localStorage.removeItem(
+        "selectedOffer"
+    );
+
+
+    alert(
+        "Digital handover completed!"
+    );
+
+
+    window.location.href =
+        "earnings.html";
+
+}
+
+
+loadHandover();
+
+</script>
+
+<script src="js/i18n.js"></script>
+</body>
+
+</html>

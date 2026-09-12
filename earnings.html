@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
+
+    <title>Earnings Ledger</title>
+
+    <link rel="stylesheet"
+          href="css/style.css">
+
+</head>
+
+
+<body class="app-page earnings-page">
+
+<div class="page">
+
+    <div class="header app-header"><div><a class="brand brand--small" href="collector.html"><span class="brand-mark">E</span><span>EcoNex</span></a><p>My earnings • मेरी कमाई</p></div><button class="quiet-btn" onclick="location.href='collector.html'">← Dashboard</button></div>
+
+
+    <div class="dashboard">
+
+        <div class="earnings-hero"><div><span class="section-kicker">TOTAL RECEIVED</span><h1 id="total">₹0</h1><p>From verified e-waste handovers</p></div><div class="ledger-count"><strong id="transactionCount">0</strong><span>completed<br>transactions</span></div><span class="earnings-illustration">₹</span></div>
+        <div class="page-title page-title--compact"><div><h2>Transaction history</h2><p>Your completed handovers appear here.</p></div><span class="trust-chip">✓ Traceable records</span></div>
+
+
+        <div id="transactions"></div>
+
+    </div>
+
+</div>
+
+
+<script>
+
+function loadEarnings() {
+
+    const transactions =
+        JSON.parse(
+            localStorage.getItem(
+                "transactions"
+            )
+        ) || [];
+
+
+    const container =
+        document.getElementById(
+            "transactions"
+        );
+
+
+    let total = 0;
+
+
+    container.innerHTML = "";
+    document.getElementById("transactionCount").innerText = transactions.length;
+
+
+    if (
+        transactions.length === 0
+    ) {
+
+        container.innerHTML = `
+
+            <div class="card">
+
+                <h3>
+                    No completed transactions
+                </h3>
+
+                <p>
+                    Your completed transactions
+                    will appear here.
+                </p>
+
+            </div>
+
+        `;
+
+        return;
+    }
+
+    transactions
+        .slice()
+        .reverse()
+        .forEach(
+        transaction => {
+
+            total +=
+                Number(
+                    transaction.amount
+                );
+
+
+            container.innerHTML += `
+
+                <div class="lot-card">
+
+                    <h3>
+                        ${transaction.transactionId}
+                    </h3>
+
+                    <p>
+                        Lot:
+                        ${transaction.lotId}
+                    </p>
+
+                    <p>
+                        Material:
+                        ${transaction.material}
+                    </p>
+
+                    <p>
+                        Recycler:
+                        ${transaction.recycler}
+                    </p>
+
+                    <p>
+                        Final Weight:
+                        ${transaction.finalWeight}
+                        kg
+                    </p>
+
+                    <p>
+                        Final Price:
+                        ₹${transaction.finalPrice}/kg
+                    </p>
+
+                    <h3>
+                        Earned:
+                        ₹${transaction.amount}
+                    </h3>
+
+                    <p>
+                        📍 ${transaction.location}
+                    </p>
+
+                    <p>
+                        🕐 ${transaction.timestamp}
+                    </p>
+
+                    <p>
+                        Status:
+                        ✅ ${transaction.status}
+                    </p>
+
+                </div>
+
+            `;
+
+        }
+    );
+
+
+    document.getElementById(
+        "total"
+    ).innerText =
+        "₹" + total;
+
+
+}
+
+
+loadEarnings();
+
+</script>
+
+<script src="js/i18n.js"></script>
+</body>
+
+</html>

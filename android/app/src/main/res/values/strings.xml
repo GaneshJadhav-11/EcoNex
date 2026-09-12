@@ -1,0 +1,8 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">EcoNex</string>
+    <string name="title_activity_main">EcoNex</string>
+    <string name="package_name">com.econex.app</string>
+    <string name="custom_url_scheme">com.econex.app</string>
+    <string name="server_client_id">437268892636-h4cd1s97k65c6fcosvudgics8okecd12.apps.googleusercontent.com</string>
+</resources>
