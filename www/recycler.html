@@ -609,15 +609,20 @@ function showVerificationStatus() {
    LOGOUT
 ================================ */
 
-function logout() {
+async function logout() {
+    try {
+        if (typeof Capacitor !== 'undefined' && Capacitor.isNativePlatform()) {
+            const { GoogleAuth } = Capacitor.Plugins;
+            await GoogleAuth.signOut();
+        }
+    } catch (e) {
+        console.error("Sign out error:", e);
+    }
 
-    localStorage.removeItem(
-        "currentRole"
-    );
+    localStorage.removeItem("currentRole");
+    localStorage.removeItem("user");
 
-    window.location.href =
-        "index.html";
-
+    window.location.href = "index.html";
 }
 
 
@@ -754,6 +759,7 @@ function submitOffer(lotId) {
 }
 </script>
 
+<script src="js/capacitor.js"></script>
 <script src="js/i18n.js"></script>
 </body>
 

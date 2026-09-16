@@ -22,7 +22,7 @@
 
     <div class="header app-header">
         <div><a class="brand brand--small" href="collector.html"><span class="brand-mark">E</span><span>EcoNex</span></a><p>Collector workspace • कलेक्टर डैशबोर्ड</p></div>
-        <button class="quiet-btn" onclick="location.href='index.html'">Log out</button>
+        <button class="quiet-btn" onclick="logout()">Log out</button>
     </div>
 
 
@@ -186,8 +186,23 @@ function updateDashboard() {
 
 updateDashboard();
 
+async function logout() {
+    try {
+        if (typeof Capacitor !== 'undefined' && Capacitor.isNativePlatform()) {
+            const { GoogleAuth } = Capacitor.Plugins;
+            await GoogleAuth.signOut();
+        }
+    } catch (e) {
+        console.error("Sign out error:", e);
+    }
+    localStorage.removeItem("currentRole");
+    localStorage.removeItem("user");
+    window.location.href = "index.html";
+}
+
 </script>
 
+<script src="js/capacitor.js"></script>
 <script src="js/i18n.js"></script>
 </body>
 

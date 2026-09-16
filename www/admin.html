@@ -20,7 +20,7 @@
 
 <div class="page">
 
-    <div class="header app-header"><div><a class="brand brand--small" href="index.html"><span class="brand-mark">E</span><span>EcoNex</span></a><p>Admin workspace • recycler verification</p></div><button class="quiet-btn" onclick="location.href='index.html'">Home</button></div>
+    <div class="header app-header"><div><a class="brand brand--small" href="index.html"><span class="brand-mark">E</span><span>EcoNex</span></a><p>Admin workspace • recycler verification</p></div><button class="quiet-btn" onclick="logout()">Log out</button></div>
 
 
     <div class="card form-card">
@@ -57,6 +57,22 @@
 
 <!-- IMPORTANT -->
 
+<script src="js/capacitor.js"></script>
+<script>
+async function logout() {
+    try {
+        if (typeof Capacitor !== 'undefined' && Capacitor.isNativePlatform()) {
+            const { GoogleAuth } = Capacitor.Plugins;
+            await GoogleAuth.signOut();
+        }
+    } catch (e) {
+        console.error("Sign out error:", e);
+    }
+    localStorage.removeItem("currentRole");
+    localStorage.removeItem("user");
+    window.location.href = "index.html";
+}
+</script>
 <script src="js/admin.js"></script>
 
 

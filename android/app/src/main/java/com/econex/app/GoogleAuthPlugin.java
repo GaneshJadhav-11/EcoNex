@@ -15,10 +15,12 @@ import com.getcapacitor.PluginCall;
 import com.getcapacitor.PluginMethod;
 import com.getcapacitor.annotation.CapacitorPlugin;
 import com.getcapacitor.annotation.ActivityCallback;
+import android.util.Log;
 
 @CapacitorPlugin(name = "GoogleAuth")
 public class GoogleAuthPlugin extends Plugin {
 
+    private static final String TAG = "GoogleAuthPlugin";
     private GoogleSignInClient googleSignInClient;
     private PluginCall savedCall;
 
@@ -36,20 +38,25 @@ public class GoogleAuthPlugin extends Plugin {
 
     @PluginMethod()
     public void signIn(PluginCall call) {
+        Log.d(TAG, "signIn called");
         savedCall = call;
         // Make sure we always clear any previous sign-in so the account chooser ALWAYS appears.
         if (googleSignInClient != null) {
+            Log.d(TAG, "googleSignInClient is not null, signing out first");
             googleSignInClient.signOut().addOnCompleteListener(getActivity(), task -> {
+                Log.d(TAG, "signOut complete, starting signInIntent");
                 getActivity().runOnUiThread(() -> {
                     try {
                         Intent signInIntent = googleSignInClient.getSignInIntent();
                         startActivityForResult(call, signInIntent, "authResult");
                     } catch (Exception e) {
+                        Log.e(TAG, "Failed to start Google Sign-In", e);
                         call.reject("Failed to start Google Sign-In: " + e.getMessage());
                     }
                 });
             });
         } else {
+            Log.e(TAG, "GoogleSignInClient is not initialized");
             call.reject("GoogleSignInClient is not initialized.");
         }
     }
