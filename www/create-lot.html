@@ -25,7 +25,14 @@
 <span class="section-kicker">STEP 1 OF 1</span><h1>Create a new lot</h1>
 <p class="form-intro">Add only the details you know. You can complete this offline and sync later.</p>
 
-<div class="photo-drop"><span>📷</span><div><strong>Photograph the e-waste</strong><small>A clear photo helps with the estimate</small></div><input type="file" id="photo" accept="image/*" capture="environment" aria-label="Upload e-waste photo"></div>
+<div class="photo-drop" onclick="triggerImagePicker()" style="cursor: pointer;">
+    <span>📷</span>
+    <div>
+        <strong>Photograph the e-waste</strong>
+        <small>A clear photo helps with the estimate</small>
+    </div>
+    <input type="file" id="photo" accept="image/*" capture="environment" aria-label="Upload e-waste photo" style="display: none;">
+</div>
 <div class="image-preview" id="imagePreview" hidden><img id="previewImage" alt="Selected e-waste preview"><button type="button" class="quiet-btn" onclick="clearImage()">Remove photo</button></div>
 
 
@@ -112,6 +119,33 @@ Create lot & see offers →
 <script>
 
 let detectedCoordinates = null;
+let nativeImageDataUrl = null;
+
+function triggerImagePicker() {
+    if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.ImageSelector) {
+        window.Capacitor.Plugins.ImageSelector.showImageSelector()
+            .then(result => {
+                if (result && result.dataUrl) {
+                    nativeImageDataUrl = result.dataUrl;
+                    document.getElementById("previewImage").src = result.dataUrl;
+                    document.getElementById("imagePreview").hidden = false;
+                    document.getElementById("message").innerText = "Photo added successfully.";
+                }
+            })
+            .catch(err => {
+                console.warn("Native image selector error or cancellation:", err);
+                const errMsg = typeof err === 'string' ? err : (err && err.message ? err.message : "");
+                if (errMsg.includes("Camera permission denied")) {
+                    alert("Camera permission was denied. Please allow camera access in your device settings.");
+                    document.getElementById("message").innerText = "Camera permission denied.";
+                } else if (errMsg !== "Cancelled") {
+                    document.getElementById("message").innerText = "Could not capture image. Please try again.";
+                }
+            });
+    } else {
+        document.getElementById("photo").click();
+    }
+}
 
 document.getElementById("photo").addEventListener("change", function () {
     const file = this.files[0];
@@ -125,6 +159,7 @@ document.getElementById("photo").addEventListener("change", function () {
     }
     const reader = new FileReader();
     reader.onload = event => {
+        nativeImageDataUrl = null;
         document.getElementById("previewImage").src = event.target.result;
         preview.hidden = false;
         document.getElementById("message").innerText = "Photo ready to add to this lot.";
@@ -133,6 +168,7 @@ document.getElementById("photo").addEventListener("change", function () {
 });
 
 function clearImage() {
+    nativeImageDataUrl = null;
     document.getElementById("photo").value = "";
     document.getElementById("previewImage").removeAttribute("src");
     document.getElementById("imagePreview").hidden = true;
@@ -201,7 +237,7 @@ window.createLot = function() {
         document.getElementById("photo").files[0];
 
 
-    if (!photoFile) {
+    if (!nativeImageDataUrl && !photoFile) {
         alert("Please add an e-waste photo before creating the lot.");
         return;
     }
@@ -245,6 +281,11 @@ window.createLot = function() {
         alert("Lot created successfully!\n\nLot ID: " + lot.id);
         window.location.href = "offers.html";
     };
+
+    if (nativeImageDataUrl) {
+        saveLot(nativeImageDataUrl);
+        return;
+    }
 
     const reader = new FileReader();
 
@@ -317,6 +358,7 @@ window.createLot = function() {
 
 </script>
 
+<script src="js/network.js"></script>
 <script src="js/i18n.js"></script>
 </body>
 

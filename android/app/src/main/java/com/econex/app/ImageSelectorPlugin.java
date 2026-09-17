@@ -80,7 +80,7 @@ public class ImageSelectorPlugin extends Plugin {
             launchCamera();
         } else {
             if (savedCall != null) {
-                savedCall.reject("Camera permission denied. Please allow camera access to take photos.");
+                savedCall.reject("Camera permission denied. Please allow camera access in settings to take photos.");
                 savedCall = null;
             }
         }
@@ -114,9 +114,9 @@ public class ImageSelectorPlugin extends Plugin {
                     }
                     return;
                 }
-                InputStream is = getActivity().getContentResolver().openInputStream(cameraImageUri);
-                Bitmap bitmap = BitmapFactory.decodeStream(is);
-                if (is != null) is.close();
+
+                // Low-memory optimization for entry-level devices: Downsample bitmap
+                Bitmap bitmap = decodeSampledBitmapFromUri(cameraImageUri, 1024, 1024);
 
                 if (bitmap == null) {
                     if (savedCall != null) {
@@ -127,8 +127,10 @@ public class ImageSelectorPlugin extends Plugin {
                 }
 
                 ByteArrayOutputStream baos = new ByteArrayOutputStream();
-                bitmap.compress(Bitmap.CompressFormat.JPEG, 85, baos);
+                bitmap.compress(Bitmap.CompressFormat.JPEG, 75, baos);
                 byte[] bytes = baos.toByteArray();
+                bitmap.recycle(); // Free native bitmap memory immediately
+
                 String base64 = Base64.encodeToString(bytes, Base64.DEFAULT);
                 String dataUrl = "data:image/jpeg;base64," + base64;
 
@@ -170,9 +172,9 @@ public class ImageSelectorPlugin extends Plugin {
                     }
                     return;
                 }
-                InputStream is = getActivity().getContentResolver().openInputStream(imageUri);
-                Bitmap bitmap = BitmapFactory.decodeStream(is);
-                if (is != null) is.close();
+
+                // Low-memory optimization: Downsample bitmap
+                Bitmap bitmap = decodeSampledBitmapFromUri(imageUri, 1024, 1024);
 
                 if (bitmap == null) {
                     if (savedCall != null) {
@@ -183,8 +185,10 @@ public class ImageSelectorPlugin extends Plugin {
                 }
 
                 ByteArrayOutputStream baos = new ByteArrayOutputStream();
-                bitmap.compress(Bitmap.CompressFormat.JPEG, 85, baos);
+                bitmap.compress(Bitmap.CompressFormat.JPEG, 75, baos);
                 byte[] bytes = baos.toByteArray();
+                bitmap.recycle(); // Free native bitmap memory immediately
+
                 String base64 = Base64.encodeToString(bytes, Base64.DEFAULT);
                 String dataUrl = "data:image/jpeg;base64," + base64;
 
@@ -206,5 +210,39 @@ public class ImageSelectorPlugin extends Plugin {
                 savedCall = null;
             }
         }
+    }
+
+    /**
+     * Efficiently decodes and downsamples bitmap from URI to avoid OutOfMemoryError on low-end Android devices.
+     */
+    private Bitmap decodeSampledBitmapFromUri(Uri uri, int reqWidth, int reqHeight) throws Exception {
+        BitmapFactory.Options options = new BitmapFactory.Options();
+        options.inJustDecodeBounds = true;
+        try (InputStream isBounds = getActivity().getContentResolver().openInputStream(uri)) {
+            BitmapFactory.decodeStream(isBounds, null, options);
+        }
+
+        options.inSampleSize = calculateInSampleSize(options, reqWidth, reqHeight);
+        options.inJustDecodeBounds = false;
+
+        try (InputStream isDecode = getActivity().getContentResolver().openInputStream(uri)) {
+            return BitmapFactory.decodeStream(isDecode, null, options);
+        }
+    }
+
+    private static int calculateInSampleSize(BitmapFactory.Options options, int reqWidth, int reqHeight) {
+        final int height = options.outHeight;
+        final int width = options.outWidth;
+        int inSampleSize = 1;
+
+        if (height > reqHeight || width > reqWidth) {
+            final int halfHeight = height / 2;
+            final int halfWidth = width / 2;
+
+            while ((halfHeight / inSampleSize) >= reqHeight && (halfWidth / inSampleSize) >= reqWidth) {
+                inSampleSize *= 2;
+            }
+        }
+        return inSampleSize;
     }
 }
