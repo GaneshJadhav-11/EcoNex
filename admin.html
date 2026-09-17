@@ -18,9 +18,34 @@
 
 <body class="app-page admin-page">
 
+<script>
+    const role = localStorage.getItem("currentRole");
+    const email = localStorage.getItem("currentUserEmail");
+    if (role !== "admin" || !email || email.toLowerCase() !== "ganeshj2837@gmail.com") {
+        alert("Access denied. This Google account is not authorized for Admin Portal.");
+        localStorage.removeItem("currentRole");
+        localStorage.removeItem("currentUserEmail");
+        localStorage.removeItem("currentUserName");
+        if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.GoogleAuth) {
+            window.Capacitor.Plugins.GoogleAuth.signOut().catch(() => {});
+        }
+        window.location.href = "index.html";
+    }
+
+    function logoutAdmin() {
+        localStorage.removeItem("currentRole");
+        localStorage.removeItem("currentUserEmail");
+        localStorage.removeItem("currentUserName");
+        if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.GoogleAuth) {
+            window.Capacitor.Plugins.GoogleAuth.signOut().catch(() => {});
+        }
+        window.location.href = "index.html";
+    }
+</script>
+
 <div class="page">
 
-    <div class="header app-header"><div><a class="brand brand--small" href="index.html"><span class="brand-mark">E</span><span>EcoNex</span></a><p>Admin workspace • recycler verification</p></div><button class="quiet-btn" onclick="location.href='index.html'">Home</button></div>
+    <div class="header app-header"><div><a class="brand brand--small" href="index.html"><span class="brand-mark">E</span><span>EcoNex</span></a><p>Admin workspace • recycler verification</p></div><button class="quiet-btn" onclick="logoutAdmin()">Log out</button></div>
 
 
     <div class="card form-card">

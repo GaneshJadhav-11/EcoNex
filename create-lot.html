@@ -138,57 +138,50 @@ function clearImage() {
     document.getElementById("imagePreview").hidden = true;
 }
 
-async function getLocation() {
+function getLocation() {
 
-    const message = document.getElementById("message");
-    const locationInput = document.getElementById("location");
+    if (!navigator.geolocation) {
 
-    try {
+        document.getElementById("message").innerText = "Location is not supported by this browser. Please use a browser with GPS support.";
 
-        // Request Android location permission
-        const permission = await Capacitor.Plugins.Geolocation.requestPermissions();
-
-        if (permission.location !== "granted") {
-
-            message.innerText =
-                "Please allow location access and try again.";
-
-            return;
-        }
-
-        // Get current GPS location
-        const position =
-            await Capacitor.Plugins.Geolocation.getCurrentPosition({
-                enableHighAccuracy: true,
-                timeout: 15000,
-                maximumAge: 0
-            });
-
-        const lat = position.coords.latitude;
-        const lon = position.coords.longitude;
-
-        detectedCoordinates = {
-            latitude: lat,
-            longitude: lon
-        };
-
-        locationInput.value =
-            lat.toFixed(5) + ", " + lon.toFixed(5);
-
-        message.innerText =
-            "✓ Location detected successfully.";
-
-    } catch (error) {
-
-        console.error("Location error:", error);
-
-        message.innerText =
-            "Location could not be detected. Please check GPS and try again.";
+        return;
     }
+
+
+    navigator.geolocation.getCurrentPosition(
+
+        function(position) {
+
+            const lat =
+                position.coords.latitude;
+
+            const lon =
+                position.coords.longitude;
+
+
+            detectedCoordinates = { latitude: lat, longitude: lon };
+            document.getElementById("location").value = lat.toFixed(5) + ", " + lon.toFixed(5);
+            document.getElementById("message").innerText = "✓ Location detected successfully.";
+
+        },
+
+        function(error) {
+            const messages = {
+                1: "Location permission was denied. Please allow location access and try again.",
+                2: "Your location is unavailable right now. Please move to an open area and try again.",
+                3: "Location detection timed out. Please try again."
+            };
+            document.getElementById("message").innerText = messages[error.code] || "Location could not be detected. Please try again.";
+
+        },
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 300000 }
+
+    );
+
 }
 
 
-window.createLot = function() {
+window.createLot = async function() {
 
     const material =
         document.getElementById("material").value;
@@ -199,7 +192,8 @@ window.createLot = function() {
     const condition =
         document.getElementById("condition").value;
 
-    const description = document.getElementById("description").value.trim();
+    const description =
+        document.getElementById("description").value.trim();
 
     const location =
         document.getElementById("location").value;
@@ -213,119 +207,231 @@ window.createLot = function() {
         return;
     }
 
+
     if (!material || !weight || Number(weight) <= 0) {
         alert("Please select a material and enter a valid weight.");
         return;
     }
+
 
     if (!location || !detectedCoordinates) {
         alert("Please detect your collection location before creating the lot.");
         return;
     }
 
-    const saveLot = function(image = "") {
-        const lot = {
-            id: "LOT-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 6).toUpperCase(),
-            material: material,
-            weight: Number(weight),
-            condition: condition,
-            description: description,
-            location: location,
-            latitude: detectedCoordinates.latitude,
-            longitude: detectedCoordinates.longitude,
-            image: image,
-            createdAt: new Date().toLocaleString(),
-            status: "Waiting for Recycler Offers"
-        };
 
-        const lots = JSON.parse(localStorage.getItem("lots")) || [];
-        lots.push(lot);
-        try {
-            localStorage.setItem("lots", JSON.stringify(lots));
-        } catch (error) {
-            if (error.name === "QuotaExceededError") {
-                alert("Storage is full. Please clear old test lots and try again.");
-                return;
-            }
-            throw error;
-        }
-        alert("Lot created successfully!\n\nLot ID: " + lot.id);
-        window.location.href = "offers.html";
-    };
-
-    const reader = new FileReader();
-
-    reader.onload = function(event) {
-
-        const img = new Image();
-
-        img.onload = function() {
-
-            const canvas = document.createElement("canvas");
-
-            const MAX_WIDTH = 800;
-            const MAX_HEIGHT = 800;
-
-            let width = img.width;
-            let height = img.height;
+    document.getElementById("message").innerText =
+        "⏳ Analyzing your e-waste image with AI...";
 
 
-            // Resize image
-            if (width > MAX_WIDTH) {
+    try {
 
-                height =
-                    height * (MAX_WIDTH / width);
-
-                width = MAX_WIDTH;
-            }
-
-            if (height > MAX_HEIGHT) {
-
-                width =
-                    width * (MAX_HEIGHT / height);
-
-                height = MAX_HEIGHT;
-            }
+        // Convert selected photo into Blob
+        const imageBlob =
+            await fetch(
+                URL.createObjectURL(photoFile)
+            ).then(response => response.blob());
 
 
-            canvas.width = width;
-            canvas.height = height;
+        // Create form data for n8n
+        const formData =
+            new FormData();
 
 
-            const ctx =
-                canvas.getContext("2d");
+        formData.append(
+            "image",
+            imageBlob,
+            "econex-ewaste.jpg"
+        );
 
-            ctx.drawImage(
-                img,
-                0,
-                0,
-                width,
-                height
+
+        // Send image to EcoNex n8n AI backend
+        const apiResponse =
+            await fetch(
+                "http://192.168.2.229:5678/webhook/econex-image",
+                {
+                    method: "POST",
+                    body: formData
+                }
             );
 
 
-            // Convert to compressed JPEG
-            const compressedImage =
-                canvas.toDataURL(
-                    "image/jpeg",
-                    0.6
+        if (!apiResponse.ok) {
+            throw new Error(
+                "API request failed. HTTP " +
+                apiResponse.status
+            );
+        }
+
+
+        // Read AI response
+        const aiResult =
+            await apiResponse.json();
+
+
+        console.log(
+            "EcoNex AI Result:",
+            aiResult
+        );
+
+
+        if (!aiResult || !aiResult.status) {
+            throw new Error(
+                "Invalid response received from EcoNex AI."
+            );
+        }
+
+
+        document.getElementById("message").innerText =
+            "✓ AI analysis completed successfully.";
+
+
+        // Create lot with AI information
+        const lot = {
+
+            id:
+                "LOT-" +
+                Date.now().toString(36) +
+                "-" +
+                Math.random()
+                    .toString(36)
+                    .slice(2, 6)
+                    .toUpperCase(),
+
+            material:
+                material,
+
+            weight:
+                Number(weight),
+
+            condition:
+                condition,
+
+            description:
+                description,
+
+            location:
+                location,
+
+            latitude:
+                detectedCoordinates.latitude,
+
+            longitude:
+                detectedCoordinates.longitude,
+
+            image:
+                URL.createObjectURL(photoFile),
+
+
+            // AI RESULT
+            ai_status:
+                aiResult.status || null,
+
+            ai_object_name:
+                aiResult.object_name || null,
+
+            ai_category:
+                aiResult.category || null,
+
+            ai_materials:
+                aiResult.materials || null,
+
+            ai_recyclable:
+                aiResult.recyclable ?? null,
+
+            ai_authorized_recycler_required:
+                aiResult.authorized_recycler_required ?? null,
+
+            ai_confidence:
+                aiResult.confidence ?? null,
+
+
+            createdAt:
+                new Date().toLocaleString(),
+
+            status:
+                "Waiting for Recycler Offers"
+        };
+
+
+        // Save lot
+        const lots =
+            JSON.parse(
+                localStorage.getItem("lots")
+            ) || [];
+
+
+        lots.push(lot);
+
+
+        try {
+
+            localStorage.setItem(
+                "lots",
+                JSON.stringify(lots)
+            );
+
+        } catch (error) {
+
+            if (
+                error.name ===
+                "QuotaExceededError"
+            ) {
+
+                alert(
+                    "Storage is full. Please clear old test lots and try again."
                 );
 
+                return;
+            }
 
-            saveLot(compressedImage);
-        };
-        img.onerror = function() { alert("This photo could not be read. Please choose another image."); };
-        img.src = event.target.result;
-    };
+            throw error;
+        }
 
 
-    reader.readAsDataURL(photoFile);
+        // Show AI result
+        alert(
+            "AI analysis completed!\n\n" +
+
+            "Object: " +
+            (aiResult.object_name || "E-waste") +
+
+            "\nCategory: " +
+            (aiResult.category || "Unknown") +
+
+            "\nConfidence: " +
+            (aiResult.confidence ?? "N/A") +
+            "%"
+        );
+
+
+        // Go to offers page
+        window.location.href =
+            "offers.html";
+
+
+    } catch (error) {
+
+        console.error(
+            "EcoNex AI API Error:",
+            error
+        );
+
+
+        document.getElementById("message").innerText =
+            "❌ AI analysis failed.";
+
+
+        alert(
+            "Could not connect to EcoNex AI.\n\n" +
+            error.message
+        );
+    }
+
 };
 
 </script>
 
-<script src="js/capacitor.js"></script>
-<script src="js/geolocation.js"></script>
 <script src="js/i18n.js"></script>
 </body>
 

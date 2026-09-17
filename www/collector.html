@@ -18,11 +18,29 @@
 
 <body class="app-page collector-page">
 
+<script>
+    const role = localStorage.getItem("currentRole");
+    if (role !== "collector") {
+        alert("Access Denied: You are not authorized to access the Collector workspace.");
+        window.location.href = "index.html";
+    }
+
+    function logoutCollector() {
+        localStorage.removeItem("currentRole");
+        localStorage.removeItem("currentUserEmail");
+        localStorage.removeItem("currentUserName");
+        if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.GoogleAuth) {
+            window.Capacitor.Plugins.GoogleAuth.signOut().catch(() => {});
+        }
+        window.location.href = "index.html";
+    }
+</script>
+
 <div class="page">
 
     <div class="header app-header">
         <div><a class="brand brand--small" href="collector.html"><span class="brand-mark">E</span><span>EcoNex</span></a><p>Collector workspace • कलेक्टर डैशबोर्ड</p></div>
-        <button class="quiet-btn" onclick="location.href='index.html'">Log out</button>
+        <button class="quiet-btn" onclick="logoutCollector()">Log out</button>
     </div>
 
 

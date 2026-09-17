@@ -12,6 +12,14 @@
 
 <body class="app-page recycler-page">
 
+<script>
+    const role = localStorage.getItem("currentRole");
+    if (role !== "recycler") {
+        alert("Access Denied: You are not authorized to access the Recycler workspace.");
+        window.location.href = "index.html";
+    }
+</script>
+
 <div class="page">
 
     <!-- HEADER -->
@@ -610,14 +618,13 @@ function showVerificationStatus() {
 ================================ */
 
 function logout() {
-
-    localStorage.removeItem(
-        "currentRole"
-    );
-
-    window.location.href =
-        "index.html";
-
+    localStorage.removeItem("currentRole");
+    localStorage.removeItem("currentUserEmail");
+    localStorage.removeItem("currentUserName");
+    if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.GoogleAuth) {
+        window.Capacitor.Plugins.GoogleAuth.signOut().catch(() => {});
+    }
+    window.location.href = "index.html";
 }
 
 

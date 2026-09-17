@@ -27,27 +27,30 @@ public class GoogleAuthPlugin extends Plugin {
         super.load();
         String clientId = getContext().getString(R.string.server_client_id);
         
-        GoogleSignInOptions gso = new GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
-                .requestEmail()
-                .requestIdToken(clientId)
-                .build();
-        googleSignInClient = GoogleSignIn.getClient(getContext(), gso);
+        GoogleSignInOptions.Builder gsoBuilder = new GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+                .requestEmail();
+                
+        // Only request ID token if a real client ID was provided
+        if (clientId != null && !clientId.isEmpty() && !clientId.equals("YOUR_WEB_OAUTH_CLIENT_ID_HERE")) {
+            gsoBuilder.requestIdToken(clientId);
+        }
+        
+        googleSignInClient = GoogleSignIn.getClient(getActivity(), gsoBuilder.build());
     }
 
     @PluginMethod()
     public void signIn(PluginCall call) {
         savedCall = call;
-        // Make sure we always clear any previous sign-in so the account chooser ALWAYS appears.
         if (googleSignInClient != null) {
-            googleSignInClient.signOut().addOnCompleteListener(getActivity(), task -> {
-                getActivity().runOnUiThread(() -> {
-                    try {
-                        Intent signInIntent = googleSignInClient.getSignInIntent();
-                        startActivityForResult(call, signInIntent, "authResult");
-                    } catch (Exception e) {
-                        call.reject("Failed to start Google Sign-In: " + e.getMessage());
-                    }
-                });
+            getActivity().runOnUiThread(() -> {
+                try {
+                    // Try to launch intent directly without forcing a signOut first,
+                    // as signOut might be failing or delaying indefinitely on some devices/emulators
+                    Intent signInIntent = googleSignInClient.getSignInIntent();
+                    startActivityForResult(call, signInIntent, "authResult");
+                } catch (Exception e) {
+                    call.reject("Failed to start Google Sign-In: " + e.getMessage());
+                }
             });
         } else {
             call.reject("GoogleSignInClient is not initialized.");
@@ -83,12 +86,19 @@ public class GoogleAuthPlugin extends Plugin {
                 }
             } catch (ApiException e) {
                 if (call != null) {
-                    call.reject("Google Sign-In failed with code: " + e.getStatusCode());
+                    call.reject("Google Sign-In API Error: " + e.getStatusCode());
                 }
             }
         } else {
             if (call != null) {
-                call.reject("Google Sign-In cancelled or failed");
+                String errorMsg = "Google Sign-In cancelled or failed. ResultCode: " + result.getResultCode();
+                if (result.getResultCode() == Activity.RESULT_CANCELED) {
+                    errorMsg += "\n\nCRITICAL: If the UI did not appear, your Android SHA-1 fingerprint is NOT registered in Google Cloud Console for com.econex.app!";
+                }
+                if (result.getData() != null && result.getData().getExtras() != null) {
+                    errorMsg += " Extras: " + result.getData().getExtras().toString();
+                }
+                call.reject(errorMsg);
             }
         }
         savedCall = null;

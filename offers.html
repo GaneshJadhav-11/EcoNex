@@ -12,6 +12,14 @@
 
 <body class="app-page offers-page">
 
+<script>
+    const role = localStorage.getItem("currentRole");
+    if (role !== "collector") {
+        alert("Access Denied: You are not authorized to access the Collector workspace.");
+        window.location.href = "index.html";
+    }
+</script>
+
 <div class="page">
 
     <div class="header app-header"><div><a class="brand brand--small" href="collector.html"><span class="brand-mark">E</span><span>EcoNex</span></a><p>Price board • मूल्य सूची</p></div><button class="quiet-btn" onclick="location.href='collector.html'">← Dashboard</button></div>
