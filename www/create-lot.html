@@ -174,46 +174,79 @@ function clearImage() {
     document.getElementById("imagePreview").hidden = true;
 }
 
-function getLocation() {
+async function getLocation() {
+    const msgEl = document.getElementById("message");
+    const locInput = document.getElementById("location");
 
+    msgEl.innerText = "🔍 Detecting location...";
+
+    function handlePositionSuccess(lat, lon) {
+        detectedCoordinates = { latitude: lat, longitude: lon };
+        locInput.value = lat.toFixed(5) + ", " + lon.toFixed(5);
+        msgEl.innerText = "✓ Location detected successfully.";
+    }
+
+    function handlePositionError(err) {
+        console.warn("Location detection error:", err);
+        const errMsg = typeof err === 'string' ? err : (err && err.message ? err.message : "");
+        if (err && err.code === 1) {
+            msgEl.innerText = "Location permission was denied. Please allow location access in settings.";
+            alert("Location permission was denied. Please enable location access in settings.");
+        } else if (err && err.code === 2) {
+            msgEl.innerText = "GPS signal unavailable right now. Please move to an open area and try again.";
+        } else if (err && err.code === 3) {
+            msgEl.innerText = "Location detection timed out. Please try again.";
+        } else if (errMsg.includes("permission")) {
+            msgEl.innerText = "Location permission denied. Please allow location access in settings.";
+            alert("Location permission denied. Please allow location access in settings.");
+        } else {
+            msgEl.innerText = "Location could not be detected. Please check GPS settings and try again.";
+        }
+    }
+
+    // Native Capacitor Geolocation Bridge
+    if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Geolocation) {
+        const Geolocation = window.Capacitor.Plugins.Geolocation;
+        try {
+            let permStatus = await Geolocation.checkPermissions();
+            if (permStatus.location !== 'granted' && permStatus.coarseLocation !== 'granted') {
+                permStatus = await Geolocation.requestPermissions();
+            }
+
+            if (permStatus.location === 'granted' || permStatus.coarseLocation === 'granted') {
+                const position = await Geolocation.getCurrentPosition({
+                    enableHighAccuracy: true,
+                    timeout: 10000,
+                    maximumAge: 300000
+                });
+                if (position && position.coords) {
+                    handlePositionSuccess(position.coords.latitude, position.coords.longitude);
+                    return;
+                }
+            } else {
+                handlePositionError({ code: 1, message: "Location permission denied" });
+                return;
+            }
+        } catch (nativeErr) {
+            console.warn("Capacitor Geolocation error, falling back to Web Geolocation:", nativeErr);
+        }
+    }
+
+    // Web Geolocation Fallback
     if (!navigator.geolocation) {
-
-        document.getElementById("message").innerText = "Location is not supported by this browser. Please use a browser with GPS support.";
-
+        msgEl.innerText = "Location is not supported by this device/browser.";
         return;
     }
 
-
     navigator.geolocation.getCurrentPosition(
-
-        function(position) {
-
-            const lat =
-                position.coords.latitude;
-
-            const lon =
-                position.coords.longitude;
-
-
-            detectedCoordinates = { latitude: lat, longitude: lon };
-            document.getElementById("location").value = lat.toFixed(5) + ", " + lon.toFixed(5);
-            document.getElementById("message").innerText = "✓ Location detected successfully.";
-
+        function (position) {
+            handlePositionSuccess(position.coords.latitude, position.coords.longitude);
         },
-
-        function(error) {
-            const messages = {
-                1: "Location permission was denied. Please allow location access and try again.",
-                2: "Your location is unavailable right now. Please move to an open area and try again.",
-                3: "Location detection timed out. Please try again."
-            };
-            document.getElementById("message").innerText = messages[error.code] || "Location could not be detected. Please try again.";
-
+        function (error) {
+            handlePositionError(error);
         },
         { enableHighAccuracy: true, timeout: 10000, maximumAge: 300000 }
-
     );
-
 }
 
 
