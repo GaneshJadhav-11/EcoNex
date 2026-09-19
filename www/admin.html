@@ -12,6 +12,8 @@
 
     <link rel="stylesheet"
           href="css/style.css">
+    <link rel="stylesheet"
+          href="css/admin.css">
 
 </head>
 
@@ -21,6 +23,41 @@
 <div class="page">
 
     <div class="header app-header"><div><a class="brand brand--small" href="index.html"><span class="brand-mark">E</span><span>EcoNex</span></a><p>Admin workspace • recycler verification</p></div><button class="quiet-btn" onclick="location.href='index.html'">Home</button></div>
+
+    <!-- Admin Dashboard Section -->
+    <div id="adminDashboard" class="dashboard">
+        <div class="welcome welcome--dashboard">
+            <div>
+                <span class="eyebrow eyebrow--solid">OVERVIEW</span>
+                <h2>Platform <em>Statistics</em></h2>
+                <p>Real-time analytics and marketplace metrics.</p>
+            </div>
+        </div>
+
+        <div class="stats" id="dashboardStats">
+            <div class="stat-card">
+                <h3>Total Lots</h3>
+                <p id="statTotalLots">--</p>
+            </div>
+            <div class="stat-card">
+                <h3>Total Offers</h3>
+                <p id="statTotalOffers">--</p>
+            </div>
+            <div class="stat-card">
+                <h3>Avg. Offer Value</h3>
+                <p id="statAvgOffer">--</p>
+            </div>
+        </div>
+
+        <div class="card form-card" id="dashboardAnalytics" style="max-width: 100%; margin-top: 15px; margin-bottom: 30px;">
+            <span class="section-kicker">ANALYTICS</span>
+            <h2>Volume & Activity</h2>
+            <p class="form-intro">Detailed breakdown of platform activity will be displayed here.</p>
+            <div id="chartsContainer" style="min-height: 200px; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.02); border-radius: 12px; margin-top: 15px; border: 1px dashed var(--border);">
+                <p style="color: var(--muted); font-size: 14px;">Charts and graphs placeholder</p>
+            </div>
+        </div>
+    </div>
 
 
     <div class="card form-card">
