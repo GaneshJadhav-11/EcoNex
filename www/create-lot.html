@@ -285,7 +285,7 @@ window.createLot = function() {
         return;
     }
 
-    const saveLot = function(image = "") {
+    const saveLot = async function(image = "") {
         const lot = {
             id: "LOT-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 6).toUpperCase(),
             material: material,
@@ -296,20 +296,28 @@ window.createLot = function() {
             latitude: detectedCoordinates.latitude,
             longitude: detectedCoordinates.longitude,
             image: image,
+            photo_path: image,
             createdAt: new Date().toLocaleString(),
-            status: "Waiting for Recycler Offers"
+            status: "Waiting for Recycler Offers",
+            sync_status: "PENDING",
+            retry_count: 0,
+            server_id: null
         };
 
-        const lots = JSON.parse(localStorage.getItem("lots")) || [];
-        lots.push(lot);
         try {
-            localStorage.setItem("lots", JSON.stringify(lots));
+            if (window.EcoNexDB && typeof window.EcoNexDB.saveLot === 'function') {
+                await window.EcoNexDB.saveLot(lot);
+            } else {
+                const lots = JSON.parse(localStorage.getItem("lots")) || [];
+                lots.push(lot);
+                localStorage.setItem("lots", JSON.stringify(lots));
+            }
         } catch (error) {
+            console.error("Storage error:", error);
             if (error.name === "QuotaExceededError") {
                 alert("Storage is full. Please clear old test lots and try again.");
                 return;
             }
-            throw error;
         }
         alert("Lot created successfully!\n\nLot ID: " + lot.id);
         window.location.href = "offers.html";
@@ -392,6 +400,7 @@ window.createLot = function() {
 </script>
 
 <script src="js/network.js"></script>
+<script src="js/db.js"></script>
 <script src="js/i18n.js"></script>
 </body>
 
