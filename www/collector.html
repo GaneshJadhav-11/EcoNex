@@ -141,6 +141,14 @@
 
 <script>
 
+(function checkCollectorAccess() {
+    const role = localStorage.getItem("currentRole");
+    if (role === "recycler") {
+        alert("⚠️ Access Restricted: You are signed in as a Recycler. Redirecting to Recycler workspace.");
+        window.location.href = "recycler.html";
+    }
+})();
+
 function updateDashboard() {
 
     const lots =
@@ -188,6 +196,8 @@ updateDashboard();
 
 </script>
 
+<script src="js/network.js"></script>
+<script src="js/db.js"></script>
 <script src="js/i18n.js"></script>
 </body>
 
