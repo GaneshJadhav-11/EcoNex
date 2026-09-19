@@ -1,5 +1,5 @@
 /**
- * EcoNex SQLite Local Storage Layer (Phase E)
+ * EcoNex SQLite Local Storage Layer (Phase E & F)
  * Manages offline-first lot persistence, sync states, and CRUD operations.
  */
 (function (global) {
@@ -19,6 +19,41 @@
             return global.Capacitor.Plugins.CapacitorSQLite;
         }
         return null;
+    }
+
+    /**
+     * Save base64 image to device filesystem and return file URI or path reference.
+     * @param {string} lotId
+     * @param {string} base64DataUrl
+     * @returns {Promise<string>} File URI or data URL fallback
+     */
+    async function savePhotoToFilesystem(lotId, base64DataUrl) {
+        if (!base64DataUrl || !base64DataUrl.startsWith('data:image')) {
+            return base64DataUrl || '';
+        }
+
+        const Filesystem = global.Capacitor && global.Capacitor.Plugins && global.Capacitor.Plugins.Filesystem;
+        if (Filesystem) {
+            try {
+                const fileName = `lot_photo_${lotId}.jpg`;
+                const pureBase64 = base64DataUrl.split(',')[1] || base64DataUrl;
+
+                const savedFile = await Filesystem.writeFile({
+                    path: `photos/${fileName}`,
+                    data: pureBase64,
+                    directory: 'DATA',
+                    recursive: true
+                });
+
+                if (savedFile && savedFile.uri) {
+                    console.log('[EcoNex DB] Photo saved to device filesystem:', savedFile.uri);
+                    return savedFile.uri;
+                }
+            } catch (err) {
+                console.warn('[EcoNex DB] Filesystem photo write error, using Base64 data URL fallback:', err);
+            }
+        }
+        return base64DataUrl;
     }
 
     /**
@@ -117,15 +152,24 @@
     async function saveLot(lot, updateLocalStorageMirror = true) {
         await initDB();
 
+        const lotId = lot.id || ('LOT-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 6).toUpperCase());
+        let rawPhoto = lot.photo_path || lot.image || '';
+
+        // Save heavy Base64 image to device filesystem if running natively
+        let savedPhotoPath = rawPhoto;
+        if (rawPhoto.startsWith('data:image')) {
+            savedPhotoPath = await savePhotoToFilesystem(lotId, rawPhoto);
+        }
+
         const lotData = {
-            id: lot.id || ('LOT-' + Date.now().toString(36)),
+            id: lotId,
             material: lot.material || 'Mixed E-Waste',
             weight: Number(lot.weight || 0),
             condition: lot.condition || 'Mixed',
             description: lot.description || '',
-            latitude: lot.latitude !== undefined ? Number(lot.latitude) : null,
-            longitude: lot.longitude !== undefined ? Number(lot.longitude) : null,
-            photo_path: lot.photo_path || lot.image || '',
+            latitude: lot.latitude !== undefined && lot.latitude !== null ? Number(lot.latitude) : null,
+            longitude: lot.longitude !== undefined && lot.longitude !== null ? Number(lot.longitude) : null,
+            photo_path: savedPhotoPath,
             created_at: lot.createdAt || lot.created_at || new Date().toLocaleString(),
             sync_status: lot.sync_status || lot.syncStatus || 'PENDING',
             retry_count: Number(lot.retry_count || lot.retryCount || 0),
@@ -172,7 +216,6 @@
             let localLots = JSON.parse(localStorage.getItem('lots') || '[]');
             const idx = localLots.findIndex(l => l.id === lotData.id);
 
-            // Legacy schema compatible format
             const legacyLot = {
                 id: lotData.id,
                 material: lotData.material,
@@ -182,7 +225,7 @@
                 location: lotData.latitude && lotData.longitude ? (lotData.latitude.toFixed(5) + ', ' + lotData.longitude.toFixed(5)) : (lot.location || ''),
                 latitude: lotData.latitude,
                 longitude: lotData.longitude,
-                image: lotData.photo_path,
+                image: rawPhoto || lotData.photo_path,
                 photo_path: lotData.photo_path,
                 createdAt: lotData.created_at,
                 created_at: lotData.created_at,
@@ -229,7 +272,6 @@
             }
         }
 
-        // Fallback
         const raw = localStorage.getItem('lots') || '[]';
         return JSON.parse(raw);
     }
@@ -260,7 +302,6 @@
             }
         }
 
-        // Fallback
         const all = JSON.parse(localStorage.getItem('lots') || '[]');
         return all.filter(l => l.sync_status === 'PENDING' || l.sync_status === 'FAILED');
     }
@@ -294,7 +335,6 @@
             }
         }
 
-        // Update local storage mirror
         let localLots = JSON.parse(localStorage.getItem('lots') || '[]');
         const target = localLots.find(l => l.id === id);
         if (target) {
