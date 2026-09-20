@@ -20,46 +20,58 @@
 
 <div class="page">
 
-    <div class="header app-header"><div><a class="brand brand--small" href="index.html"><span class="brand-mark">E</span><span>EcoNex</span></a><p>Admin workspace • recycler verification</p></div><button class="quiet-btn" onclick="location.href='index.html'">Home</button></div>
-
-
-    <div class="card form-card">
-        <span class="section-kicker">TRUST & COMPLIANCE</span><h2>Recycler verification</h2>
-        <p class="form-intro">Review registration details and documents before approving network access.</p>
-
+    <div class="header app-header">
+        <div><a class="brand brand--small" href="index.html"><span class="brand-mark">E</span><span>EcoNex</span></a><p>Admin workspace • recycler verification</p></div>
+        <div style="display: flex; gap: 8px;">
+            <button class="quiet-btn" id="adminLogoutBtn" style="display: none;" onclick="adminLogout()">Sign Out Admin</button>
+            <button class="quiet-btn" onclick="location.href='index.html'">Home</button>
+        </div>
     </div>
 
+    <!-- ADMIN LOGIN CARD -->
+    <div id="adminLoginCard" class="card form-card">
+        <span class="section-kicker">ADMIN SECURITY</span>
+        <h2>Admin Portal Verification</h2>
+        <p class="form-intro">Please enter authorized admin credentials to access recycler verification.</p>
 
-    <!-- Recycler profile appears here -->
+        <form onsubmit="verifyAdmin(event)">
+            <label for="adminEmailInput">Admin Email</label>
+            <input type="email" id="adminEmailInput" placeholder="amardipwaghmare47@gmail.com" required>
 
-    <div id="recyclerContainer"></div>
+            <label for="adminPasswordInput">Admin Password</label>
+            <input type="password" id="adminPasswordInput" placeholder="Enter password" required>
 
+            <br>
+            <button type="submit" class="primary-btn">Login as Admin</button>
+        </form>
+    </div>
 
-    <div class="card">
-
-        <h2>
-            📜 Verification History
-        </h2>
-
-
-        <div id="historyContainer">
-
-            <p>
-                Loading...
-            </p>
-
+    <!-- ADMIN PROTECTED CONTENT -->
+    <div id="adminContent" style="display: none;">
+        <div class="card form-card">
+            <span class="section-kicker">TRUST & COMPLIANCE</span>
+            <h2>Recycler verification</h2>
+            <p class="form-intro">Review registration details and documents before approving network access.</p>
         </div>
 
+        <!-- Recycler profile appears here -->
+        <div id="recyclerContainer"></div>
+
+        <div class="card">
+            <h2>📜 Verification History</h2>
+            <div id="historyContainer">
+                <p>Loading...</p>
+            </div>
+        </div>
     </div>
 
 </div>
 
-
 <!-- IMPORTANT -->
-
 <script src="js/admin.js"></script>
-
-
+<script src="js/network.js"></script>
+<script src="js/db.js"></script>
+<script src="js/sync.js"></script>
 <script src="js/i18n.js"></script>
 </body>
 

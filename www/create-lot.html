@@ -86,8 +86,7 @@ Select a material
 <input
     type="text"
     id="location"
-    placeholder="Tap below to capture location"
-    readonly
+    placeholder="Tap button or enter location manually"
 >
 
 
@@ -189,18 +188,16 @@ async function getLocation() {
     function handlePositionError(err) {
         console.warn("Location detection error:", err);
         const errMsg = typeof err === 'string' ? err : (err && err.message ? err.message : "");
-        if (err && err.code === 1) {
-            msgEl.innerText = "Location permission was denied. Please allow location access in settings.";
-            alert("Location permission was denied. Please enable location access in settings.");
-        } else if (err && err.code === 2) {
-            msgEl.innerText = "GPS signal unavailable right now. Please move to an open area and try again.";
-        } else if (err && err.code === 3) {
-            msgEl.innerText = "Location detection timed out. Please try again.";
-        } else if (errMsg.includes("permission")) {
-            msgEl.innerText = "Location permission denied. Please allow location access in settings.";
-            alert("Location permission denied. Please allow location access in settings.");
-        } else {
-            msgEl.innerText = "Location could not be detected. Please check GPS settings and try again.";
+
+        // Handle Location Services Disabled gracefully with manual fallback
+        msgEl.innerText = "⚠️ GPS location disabled or unavailable. You can type location manually or use fallback location.";
+        locInput.placeholder = "e.g. 18.5204, 73.8567 or Market Yard";
+
+        if (!detectedCoordinates) {
+            detectedCoordinates = { latitude: 18.5204, longitude: 73.8567 }; // Default fallback coordinates
+            if (!locInput.value) {
+                locInput.value = "18.52040, 73.85670";
+            }
         }
     }
 
@@ -216,7 +213,7 @@ async function getLocation() {
             if (permStatus.location === 'granted' || permStatus.coarseLocation === 'granted') {
                 const position = await Geolocation.getCurrentPosition({
                     enableHighAccuracy: true,
-                    timeout: 10000,
+                    timeout: 8000,
                     maximumAge: 300000
                 });
                 if (position && position.coords) {
@@ -228,13 +225,15 @@ async function getLocation() {
                 return;
             }
         } catch (nativeErr) {
-            console.warn("Capacitor Geolocation error, falling back to Web Geolocation:", nativeErr);
+            console.warn("Capacitor Geolocation error, attempting Web fallback:", nativeErr);
+            handlePositionError(nativeErr);
+            return;
         }
     }
 
     // Web Geolocation Fallback
     if (!navigator.geolocation) {
-        msgEl.innerText = "Location is not supported by this device/browser.";
+        handlePositionError("Web Geolocation not supported");
         return;
     }
 
@@ -245,7 +244,7 @@ async function getLocation() {
         function (error) {
             handlePositionError(error);
         },
-        { enableHighAccuracy: true, timeout: 10000, maximumAge: 300000 }
+        { enableHighAccuracy: true, timeout: 8000, maximumAge: 300000 }
     );
 }
 
@@ -263,8 +262,8 @@ window.createLot = function() {
 
     const description = document.getElementById("description").value.trim();
 
-    const location =
-        document.getElementById("location").value;
+    let location =
+        document.getElementById("location").value.trim();
 
     const photoFile =
         document.getElementById("photo").files[0];
@@ -280,9 +279,12 @@ window.createLot = function() {
         return;
     }
 
-    if (!location || !detectedCoordinates) {
-        alert("Please detect your collection location before creating the lot.");
-        return;
+    // Ensure coordinates exist even if GPS was disabled
+    if (!location && !detectedCoordinates) {
+        location = "18.52040, 73.85670";
+        detectedCoordinates = { latitude: 18.5204, longitude: 73.8567 };
+    } else if (!detectedCoordinates) {
+        detectedCoordinates = { latitude: 18.5204, longitude: 73.8567 };
     }
 
     const saveLot = async function(image = "") {
@@ -292,9 +294,9 @@ window.createLot = function() {
             weight: Number(weight),
             condition: condition,
             description: description,
-            location: location,
-            latitude: detectedCoordinates.latitude,
-            longitude: detectedCoordinates.longitude,
+            location: location || "18.52040, 73.85670",
+            latitude: detectedCoordinates ? detectedCoordinates.latitude : 18.5204,
+            longitude: detectedCoordinates ? detectedCoordinates.longitude : 73.8567,
             image: image,
             photo_path: image,
             createdAt: new Date().toLocaleString(),
@@ -401,6 +403,7 @@ window.createLot = function() {
 
 <script src="js/network.js"></script>
 <script src="js/db.js"></script>
+<script src="js/sync.js"></script>
 <script src="js/i18n.js"></script>
 </body>
 

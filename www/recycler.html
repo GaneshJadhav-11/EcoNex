@@ -132,6 +132,13 @@
 
 <script>
 
+(function checkRecyclerAccess() {
+    const role = localStorage.getItem("currentRole");
+    if (role === "collector") {
+        alert("⚠️ Access Restricted: You are signed in as a Collector. Redirecting to Collector workspace.");
+        window.location.href = "collector.html";
+    }
+})();
 
 /* ===============================
    SAVE RECYCLER PROFILE
@@ -754,6 +761,9 @@ function submitOffer(lotId) {
 }
 </script>
 
+<script src="js/network.js"></script>
+<script src="js/db.js"></script>
+<script src="js/sync.js"></script>
 <script src="js/i18n.js"></script>
 </body>
 
