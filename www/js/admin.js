@@ -765,10 +765,78 @@ function loadDashboardStats() {
 
 
 /* =====================================
+   RENDER CHARTS
+===================================== */
+function renderCharts() {
+    const container = document.getElementById("chartsContainer");
+    const canvas = document.getElementById("materialChart");
+    if (!container || !canvas) return;
+
+    let lots = [];
+    try {
+        lots = JSON.parse(localStorage.getItem("lots")) || [];
+    } catch (e) {
+        console.error("Failed to parse lots:", e);
+    }
+
+    if (lots.length === 0) {
+        container.innerHTML = '<p style="color: var(--muted); font-size: 14px;">No data available for charts.</p>';
+        return;
+    }
+
+    const weightByMaterial = {};
+    let hasValidData = false;
+
+    lots.forEach(lot => {
+        const mat = lot.material || "Unknown";
+        const weight = Number(lot.weight);
+        if (!isNaN(weight) && weight > 0) {
+            weightByMaterial[mat] = (weightByMaterial[mat] || 0) + weight;
+            hasValidData = true;
+        }
+    });
+
+    if (!hasValidData) {
+        container.innerHTML = '<p style="color: var(--muted); font-size: 14px;">No valid weight data available.</p>';
+        return;
+    }
+
+    const labels = Object.keys(weightByMaterial);
+    const data = Object.values(weightByMaterial);
+
+    // Adjust container styles to allow proper chart rendering
+    container.style.display = "block";
+    container.style.padding = "15px";
+
+    new Chart(canvas, {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Total Weight (kg)',
+                data: data,
+                backgroundColor: '#087f5b',
+                borderRadius: 6
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: { beginAtZero: true }
+            }
+        }
+    });
+}
+
+
+/* =====================================
    START
 ===================================== */
 
 loadDashboardStats();
+
+renderCharts();
 
 loadRecycler();
 
