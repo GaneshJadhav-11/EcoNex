@@ -53,8 +53,13 @@
             <span class="section-kicker">ANALYTICS</span>
             <h2>Volume & Activity</h2>
             <p class="form-intro">Detailed breakdown of platform activity will be displayed here.</p>
-            <div id="chartsContainer" style="min-height: 200px; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.02); border-radius: 12px; margin-top: 15px; border: 1px dashed var(--border);">
-                <canvas id="materialChart"></canvas>
+            <div id="chartsContainer" class="charts-grid" style="min-height: 250px; background: rgba(0,0,0,0.02); border-radius: 12px; margin-top: 15px; border: 1px dashed var(--border);">
+                <div id="materialChartWrapper" class="chart-wrapper">
+                    <canvas id="materialChart"></canvas>
+                </div>
+                <div id="statusChartWrapper" class="chart-wrapper">
+                    <canvas id="statusChart"></canvas>
+                </div>
             </div>
         </div>
     </div>

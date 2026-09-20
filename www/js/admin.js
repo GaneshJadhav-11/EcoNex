@@ -768,9 +768,9 @@ function loadDashboardStats() {
    RENDER CHARTS
 ===================================== */
 function renderCharts() {
-    const container = document.getElementById("chartsContainer");
+    const wrapper = document.getElementById("materialChartWrapper");
     const canvas = document.getElementById("materialChart");
-    if (!container || !canvas) return;
+    if (!wrapper || !canvas) return;
 
     let lots = [];
     try {
@@ -780,7 +780,7 @@ function renderCharts() {
     }
 
     if (lots.length === 0) {
-        container.innerHTML = '<p style="color: var(--muted); font-size: 14px;">No data available for charts.</p>';
+        wrapper.innerHTML = '<p style="color: var(--muted); font-size: 14px; text-align: center; margin-top: 50px;">No data available for material chart.</p>';
         return;
     }
 
@@ -797,16 +797,12 @@ function renderCharts() {
     });
 
     if (!hasValidData) {
-        container.innerHTML = '<p style="color: var(--muted); font-size: 14px;">No valid weight data available.</p>';
+        wrapper.innerHTML = '<p style="color: var(--muted); font-size: 14px; text-align: center; margin-top: 50px;">No valid weight data available.</p>';
         return;
     }
 
     const labels = Object.keys(weightByMaterial);
     const data = Object.values(weightByMaterial);
-
-    // Adjust container styles to allow proper chart rendering
-    container.style.display = "block";
-    container.style.padding = "15px";
 
     new Chart(canvas, {
         type: 'bar',
@@ -831,12 +827,86 @@ function renderCharts() {
 
 
 /* =====================================
+   RENDER STATUS CHART
+===================================== */
+function renderStatusChart() {
+    const wrapper = document.getElementById("statusChartWrapper");
+    const canvas = document.getElementById("statusChart");
+    if (!wrapper || !canvas) return;
+
+    let lots = [];
+    try {
+        lots = JSON.parse(localStorage.getItem("lots")) || [];
+    } catch (e) {
+        console.error("Failed to parse lots:", e);
+    }
+
+    const statusCounts = {
+        "Waiting for Recycler Offers": 0,
+        "Offer Received": 0,
+        "Offer Selected": 0,
+        "Handover Completed": 0
+    };
+
+    let hasValidData = false;
+
+    lots.forEach(lot => {
+        const status = lot.status;
+        if (status && statusCounts.hasOwnProperty(status)) {
+            statusCounts[status]++;
+            hasValidData = true;
+        }
+    });
+
+    if (!hasValidData) {
+        wrapper.innerHTML = '<p style="color: var(--muted); font-size: 14px; text-align: center; margin-top: 50px;">No data available for status chart.</p>';
+        return;
+    }
+
+    const labels = Object.keys(statusCounts);
+    const data = Object.values(statusCounts);
+
+    new Chart(canvas, {
+        type: 'doughnut',
+        data: {
+            labels: labels,
+            datasets: [{
+                data: data,
+                backgroundColor: [
+                    '#f4b942', // Waiting
+                    '#0ea5a8', // Offer Received
+                    '#6d46ff', // Offer Selected
+                    '#087f5b'  // Completed
+                ],
+                borderWidth: 0
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: {
+                        boxWidth: 12,
+                        font: { size: 11 }
+                    }
+                }
+            }
+        }
+    });
+}
+
+
+/* =====================================
    START
 ===================================== */
 
 loadDashboardStats();
 
 renderCharts();
+
+renderStatusChart();
 
 loadRecycler();
 
