@@ -124,6 +124,16 @@
 
         </div>
 
+        <div class="card" style="margin-top: 20px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;">
+                <span class="section-kicker">MY E-WASTE LOTS</span>
+                <button class="quiet-btn" onclick="loadCollectorLots()" style="font-size:12px;">Refresh</button>
+            </div>
+            <div id="collectorLotsList">
+                <p style="color:#687e74;font-size:13px;margin-top:8px;">Loading lots...</p>
+            </div>
+        </div>
+
         <section class="safety-section" aria-labelledby="safetyTitle">
             <div class="safety-section__heading"><span class="section-kicker">SAFETY FIRST</span><h2 id="safetyTitle">Handle e-waste safely</h2><p>Protect yourself, your family, and valuable materials.</p></div>
             <div class="safety-grid">
@@ -192,7 +202,46 @@ function updateDashboard() {
 
 }
 
+async function loadCollectorLots() {
+    let lots = [];
+    if (window.EcoNexDB && typeof window.EcoNexDB.getAllLots === 'function') {
+        lots = await window.EcoNexDB.getAllLots();
+    } else {
+        lots = JSON.parse(localStorage.getItem("lots")) || [];
+    }
+
+    const container = document.getElementById("collectorLotsList");
+    if (!container) return;
+
+    const activeLots = lots.filter(lot => lot.status !== "Handover Completed");
+    if (activeLots.length === 0) {
+        container.innerHTML = `<p style="color:#687e74;font-size:13px;margin-top:8px;">No active e-waste lots created yet.</p>`;
+        return;
+    }
+
+    container.innerHTML = "";
+    activeLots.slice(0, 5).forEach(lot => {
+        const badge = window.EcoNexSyncStatusUI
+            ? window.EcoNexSyncStatusUI.getBadgeHtml(lot.sync_status, lot.retry_count)
+            : '';
+        container.innerHTML += `
+            <div style="padding:10px 12px;margin-top:8px;border:1px solid #e2ebe5;border-radius:12px;background:#fff;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
+                <div>
+                    <strong>📦 ${lot.id}</strong> — ${lot.material} (${lot.weight} kg)
+                    <div style="font-size:11px;color:#687e74;margin-top:2px;">Created: ${lot.createdAt || lot.created_at}</div>
+                </div>
+                <div>${badge}</div>
+            </div>
+        `;
+    });
+}
+
+if (window.EcoNexSyncStatusUI && typeof window.EcoNexSyncStatusUI.onSyncStatusUpdated === 'function') {
+    window.EcoNexSyncStatusUI.onSyncStatusUpdated(loadCollectorLots);
+}
+
 updateDashboard();
+loadCollectorLots();
 
 </script>
 
@@ -201,6 +250,7 @@ updateDashboard();
 <script src="js/db.js"></script>
 <script src="js/sync.js"></script>
 <script src="js/sync-engine.js"></script>
+<script src="js/sync-status-ui.js"></script>
 <script src="js/i18n.js"></script>
 </body>
 

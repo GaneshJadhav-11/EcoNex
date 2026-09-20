@@ -117,9 +117,9 @@ function loadOffers() {
                     ${offer.recycler}
                 </h2>
 
-                <p>
-                    📦 Lot:
-                    <strong>${lot.id}</strong>
+                <p style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px;">
+                    <span>📦 Lot: <strong>${lot.id}</strong></span>
+                    ${window.EcoNexSyncStatusUI ? window.EcoNexSyncStatusUI.getBadgeHtml(lot.sync_status, lot.retry_count) : ''}
                 </p>
 
                 <p>
@@ -232,6 +232,7 @@ loadOffers();
 <script src="js/db.js"></script>
 <script src="js/sync.js"></script>
 <script src="js/sync-engine.js"></script>
+<script src="js/sync-status-ui.js"></script>
 <script src="js/i18n.js"></script>
 </body>
 
