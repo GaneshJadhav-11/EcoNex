@@ -4,7 +4,9 @@ var capacitorGeolocationPluginCapacitor = (function (exports, core, synapse) {
     const Geolocation = core.registerPlugin('Geolocation', {
         web: () => Promise.resolve().then(function () { return web; }).then((m) => new m.GeolocationWeb()),
     });
-    synapse.exposeSynapse();
+    if (typeof synapse !== 'undefined' && synapse && typeof synapse.exposeSynapse === 'function') {
+        synapse.exposeSynapse();
+    }
 
     class GeolocationWeb extends core.WebPlugin {
         constructor() {
@@ -111,5 +113,5 @@ var capacitorGeolocationPluginCapacitor = (function (exports, core, synapse) {
 
     return exports;
 
-})({}, capacitorExports, synapse);
+})({}, capacitorExports, typeof synapse !== 'undefined' ? synapse : {});
 //# sourceMappingURL=plugin.js.map
