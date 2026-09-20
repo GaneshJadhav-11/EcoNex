@@ -711,8 +711,64 @@ function viewDocument() {
 
 
 /* =====================================
+   DASHBOARD STATS
+===================================== */
+function loadDashboardStats() {
+    const elTotalLots = document.getElementById("statTotalLots");
+    const elTotalOffers = document.getElementById("statTotalOffers");
+    const elAvgOffer = document.getElementById("statAvgOffer");
+
+    if (!elTotalLots || !elTotalOffers || !elAvgOffer) return;
+
+    let lots = [];
+    let offers = [];
+
+    try {
+        lots = JSON.parse(localStorage.getItem("lots")) || [];
+    } catch (e) {
+        console.error("Failed to parse lots:", e);
+    }
+
+    try {
+        offers = JSON.parse(localStorage.getItem("offers")) || [];
+    } catch (e) {
+        console.error("Failed to parse offers:", e);
+    }
+
+    // 1. Total Lots
+    elTotalLots.textContent = lots.length;
+
+    // 2. Total Offers
+    elTotalOffers.textContent = offers.length;
+
+    // 3. Average Offer Value
+    if (offers.length === 0) {
+        elAvgOffer.textContent = "--";
+    } else {
+        let sum = 0;
+        let validCount = 0;
+        offers.forEach(offer => {
+            const price = Number(offer.price);
+            if (!isNaN(price) && price >= 0) {
+                sum += price;
+                validCount++;
+            }
+        });
+
+        if (validCount > 0) {
+            elAvgOffer.textContent = (sum / validCount).toFixed(2);
+        } else {
+            elAvgOffer.textContent = "--";
+        }
+    }
+}
+
+
+/* =====================================
    START
 ===================================== */
+
+loadDashboardStats();
 
 loadRecycler();
 
