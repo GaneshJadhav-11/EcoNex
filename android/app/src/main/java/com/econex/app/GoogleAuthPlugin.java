@@ -41,22 +41,17 @@ public class GoogleAuthPlugin extends Plugin {
 
     @PluginMethod
     public void signIn(PluginCall call) {
+        call.setKeepAlive(true);
         savedCall = call;
 
         // Sign out first so the account chooser appears each time
         if (googleSignInClient != null) {
-            googleSignInClient.signOut().addOnCompleteListener(getActivity(), task -> {
-                if (getActivity() != null) {
-                    getActivity().runOnUiThread(() -> {
-                        try {
-                            Intent signInIntent = googleSignInClient.getSignInIntent();
-                            startActivityForResult(call, signInIntent, "authResult");
-                        } catch (Exception e) {
-                            call.reject("Failed to start Google Sign-In: " + e.getMessage());
-                        }
-                    });
-                } else {
-                    call.reject("Activity is null.");
+            googleSignInClient.signOut().addOnCompleteListener(task -> {
+                try {
+                    Intent signInIntent = googleSignInClient.getSignInIntent();
+                    startActivityForResult(call, signInIntent, "authResult");
+                } catch (Exception e) {
+                    call.reject("Failed to start Google Sign-In: " + e.getMessage());
                 }
             });
         } else {
@@ -70,36 +65,37 @@ public class GoogleAuthPlugin extends Plugin {
             call = savedCall;
         }
 
-        if (result != null && result.getResultCode() == Activity.RESULT_OK && result.getData() != null) {
-            Task<GoogleSignInAccount> task = GoogleSignIn.getSignedInAccountFromIntent(result.getData());
-            try {
-                GoogleSignInAccount account = task.getResult(ApiException.class);
-                if (account != null) {
-                    String email = account.getEmail();
-                    String displayName = account.getDisplayName();
-                    String idToken = account.getIdToken();
+        Intent data = result != null ? result.getData() : null;
+        Task<GoogleSignInAccount> task = GoogleSignIn.getSignedInAccountFromIntent(data);
+        
+        try {
+            GoogleSignInAccount account = task.getResult(ApiException.class);
+            if (account != null) {
+                String email = account.getEmail();
+                String displayName = account.getDisplayName();
+                String idToken = account.getIdToken();
 
-                    JSObject ret = new JSObject();
-                    ret.put("email", email != null ? email : "");
-                    ret.put("name", displayName != null ? displayName : "");
-                    ret.put("idToken", idToken != null ? idToken : "");
+                JSObject ret = new JSObject();
+                ret.put("email", email != null ? email : "");
+                ret.put("name", displayName != null ? displayName : "");
+                ret.put("idToken", idToken != null ? idToken : "");
 
-                    if (call != null) {
-                        call.resolve(ret);
-                    }
-                } else {
-                    if (call != null) {
-                        call.reject("Google Sign-In account is null");
-                    }
-                }
-            } catch (ApiException e) {
                 if (call != null) {
-                    call.reject("Google Sign-In failed with code: " + e.getStatusCode());
+                    call.resolve(ret);
+                }
+            } else {
+                if (call != null) {
+                    call.reject("Google Sign-In account is null");
                 }
             }
-        } else {
+        } catch (ApiException e) {
             if (call != null) {
-                call.reject("Google Sign-In cancelled or failed");
+                int statusCode = e.getStatusCode();
+                if (statusCode == 12501) {
+                    call.reject("User cancelled");
+                } else {
+                    call.reject("Google Sign-In failed with code: " + statusCode);
+                }
             }
         }
 

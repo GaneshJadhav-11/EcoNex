@@ -17,11 +17,30 @@ class SyncWorker(
     private val repository = EWasteRepository(applicationContext)
 
     override suspend fun doWork(): Result {
-        val pendingLots = repository.getPendingLots()
         var allSuccess = true
 
+        // Sync pending lots
+        val pendingLots = repository.getPendingLots()
         for (lot in pendingLots) {
             val success = repository.syncLot(lot)
+            if (!success) {
+                allSuccess = false
+            }
+        }
+
+        // Sync pending handover events
+        val pendingHandoverEvents = repository.getPendingHandoverEvents()
+        for (event in pendingHandoverEvents) {
+            val success = repository.syncHandoverEvent(event)
+            if (!success) {
+                allSuccess = false
+            }
+        }
+
+        // Sync pending transactions
+        val pendingTransactions = repository.getPendingTransactions()
+        for (transaction in pendingTransactions) {
+            val success = repository.syncTransaction(transaction)
             if (!success) {
                 allSuccess = false
             }

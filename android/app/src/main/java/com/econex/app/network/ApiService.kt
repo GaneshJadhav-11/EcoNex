@@ -36,6 +36,12 @@ data class SyncHandoverResponse(
     val currentStatus: String
 )
 
+data class SyncTransactionResponse(
+    val success: Boolean,
+    val transactionId: String,
+    val currentStatus: String
+)
+
 interface ApiService {
 
     @POST("api/lots/sync")
@@ -50,6 +56,9 @@ interface ApiService {
 
     @POST("api/handover/sync")
     suspend fun syncHandoverEvent(@Body event: HandoverEventEntity): Response<SyncHandoverResponse>
+
+    @POST("api/transactions/sync")
+    suspend fun syncTransaction(@Body transaction: TransactionEntity): Response<SyncTransactionResponse>
 
     @GET("api/transactions/{collectorId}")
     suspend fun getTransactions(@Path("collectorId") collectorId: String): Response<List<TransactionEntity>>

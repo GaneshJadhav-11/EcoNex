@@ -7,14 +7,18 @@ import androidx.room.RoomDatabase
 import com.econex.app.model.EWasteLotEntity
 import com.econex.app.model.HandoverEventEntity
 import com.econex.app.model.TransactionEntity
+import com.econex.app.model.RecyclerProfileEntity
+import com.econex.app.model.OfferEntity
 
 @Database(
     entities = [
         EWasteLotEntity::class,
         HandoverEventEntity::class,
-        TransactionEntity::class
+        TransactionEntity::class,
+        RecyclerProfileEntity::class,
+        OfferEntity::class
     ],
-    version = 1,
+    version = 3,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -22,6 +26,8 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun eWasteLotDao(): EWasteLotDao
     abstract fun handoverDao(): HandoverDao
     abstract fun transactionDao(): TransactionDao
+    abstract fun recyclerProfileDao(): RecyclerProfileDao
+    abstract fun offerDao(): OfferDao
 
     companion object {
         @Volatile

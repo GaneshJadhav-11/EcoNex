@@ -15,6 +15,9 @@ interface HandoverDao {
     @Query("SELECT * FROM handover_events WHERE lotId = :lotId ORDER BY timestamp ASC")
     fun getEventsForLot(lotId: String): List<HandoverEventEntity>
 
+    @Query("SELECT * FROM handover_events WHERE lotId = :lotId AND eventType = :eventType LIMIT 1")
+    fun getEventByTypeAndLot(lotId: String, eventType: String): HandoverEventEntity?
+
     @Query("SELECT * FROM handover_events WHERE syncStatus = 'PENDING'")
     fun getPendingEvents(): List<HandoverEventEntity>
 }
