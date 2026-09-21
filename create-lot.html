@@ -248,7 +248,7 @@ window.createLot = async function() {
         // Send image to EcoNex n8n AI backend
         const apiResponse =
             await fetch(
-                "http://192.168.2.229:5678/webhook/econex-image",
+                "http://127.0.0.1:5678/webhook/econex-image",
                 {
                     method: "POST",
                     body: formData

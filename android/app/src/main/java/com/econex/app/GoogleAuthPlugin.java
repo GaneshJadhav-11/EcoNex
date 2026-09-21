@@ -16,7 +16,7 @@ import com.getcapacitor.PluginMethod;
 import com.getcapacitor.annotation.CapacitorPlugin;
 import com.getcapacitor.annotation.ActivityCallback;
 
-@CapacitorPlugin(name = "GoogleAuth")
+@CapacitorPlugin(name = "GoogleAuth", requestCodes = {9001})
 public class GoogleAuthPlugin extends Plugin {
 
     private GoogleSignInClient googleSignInClient;
@@ -44,8 +44,6 @@ public class GoogleAuthPlugin extends Plugin {
         if (googleSignInClient != null) {
             getActivity().runOnUiThread(() -> {
                 try {
-                    // Try to launch intent directly without forcing a signOut first,
-                    // as signOut might be failing or delaying indefinitely on some devices/emulators
                     Intent signInIntent = googleSignInClient.getSignInIntent();
                     startActivityForResult(call, signInIntent, "authResult");
                 } catch (Exception e) {

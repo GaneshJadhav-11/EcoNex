@@ -222,53 +222,74 @@ function loadHandover() {
 let handoverLocation = "";
 
 
-function getLocation() {
+async function getLocation() {
 
-    if (!navigator.geolocation) {
+    if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Geolocation) {
+        try {
+            const permStatus = await window.Capacitor.Plugins.Geolocation.checkPermissions();
+            if (permStatus.location !== 'granted') {
+                const requestStatus = await window.Capacitor.Plugins.Geolocation.requestPermissions();
+                if (requestStatus.location !== 'granted') {
+                    alert("Please allow location permission.");
+                    return;
+                }
+            }
 
-        alert(
-            "GPS is not supported by this browser."
-        );
+            const position = await window.Capacitor.Plugins.Geolocation.getCurrentPosition({ enableHighAccuracy: true, timeout: 10000 });
+            const lat = position.coords.latitude;
+            const lon = position.coords.longitude;
 
-        return;
-    }
-
-
-    navigator.geolocation.getCurrentPosition(
-
-        function(position) {
-
-            const lat =
-                position.coords.latitude;
-
-            const lon =
-                position.coords.longitude;
-
-
-            handoverLocation =
-                lat.toFixed(6) +
-                ", " +
-                lon.toFixed(6);
-
-
-            document.getElementById(
-                "gpsStatus"
-            ).innerText =
-                "📍 GPS Captured: " +
-                handoverLocation;
-
-        },
-
-        function() {
+            handoverLocation = lat.toFixed(6) + ", " + lon.toFixed(6);
+            document.getElementById("gpsStatus").innerText = "📍 GPS Captured: " + handoverLocation;
+        } catch (error) {
+            alert("Could not get location. Please try again.");
+        }
+    } else {
+        if (!navigator.geolocation) {
 
             alert(
-                "Please allow location permission."
+                "GPS is not supported by this browser."
             );
 
+            return;
         }
 
-    );
 
+        navigator.geolocation.getCurrentPosition(
+
+            function(position) {
+
+                const lat =
+                    position.coords.latitude;
+
+                const lon =
+                    position.coords.longitude;
+
+
+                handoverLocation =
+                    lat.toFixed(6) +
+                    ", " +
+                    lon.toFixed(6);
+
+
+                document.getElementById(
+                    "gpsStatus"
+                ).innerText =
+                    "📍 GPS Captured: " +
+                    handoverLocation;
+
+            },
+
+            function() {
+
+                alert(
+                    "Please allow location permission."
+                );
+
+            },
+            { enableHighAccuracy: true, timeout: 10000, maximumAge: 300000 }
+        );
+    }
 }
 
 
