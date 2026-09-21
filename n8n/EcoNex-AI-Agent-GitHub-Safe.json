@@ -1,0 +1,367 @@
+{
+  "name": "My workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "econex-image",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "92d30a87-841a-4362-af3c-f8e8cab94756",
+      "name": "Webhook",
+      "webhookId": "fb4326e3-6e45-4d22-8b9e-9499093ee8a7"
+    },
+    {
+      "parameters": {
+        "resource": "image",
+        "operation": "analyze",
+        "modelId": {
+          "__rl": true,
+          "value": "models/gemini-flash-lite-latest",
+          "mode": "list",
+          "cachedResultName": "models/gemini-flash-lite-latest"
+        },
+        "text": "Analyze the uploaded image for the EcoNex e-waste classification system.\n\nYour task is to determine whether the uploaded object is electronic waste (e-waste).\n\nIMPORTANT RULES:\n\n1. First check image quality.\n\nIf the image is blurry, too dark, overexposed, cropped, too far away, obstructed, or otherwise unclear for reliable identification:\n\nReturn ONLY this JSON:\n\n{\n\"status\": \"Image unclear\",\n\"message\": \"Please upload a clearer image of the e-waste item.\",\n\"object_name\": null,\n\"category\": null,\n\"materials\": null,\n\"recyclable\": null,\n\"authorized_recycler_required\": null,\n\"confidence\": 0\n}\n\nDO NOT guess the object when the image is unclear.\n\n2. If the image is clear, identify the object and determine whether it is e-waste.\n\nIf e-waste IS detected, return ONLY this JSON:\n\n{\n\"status\": \"E-waste detected\",\n\"message\": \"E-waste item identified.\",\n\"object_name\": \"...\",\n\"category\": \"...\",\n\"materials\": \"...\",\n\"recyclable\": true,\n\"authorized_recycler_required\": true,\n\"confidence\": 0\n}\n\nThe confidence score must be an integer from 0 to 100.\n\n3. If the image is clear but does NOT contain e-waste, return ONLY this JSON:\n\n{\n\"status\": \"Not e-waste\",\n\"message\": \"No e-waste detected in the image.\",\n\"object_name\": null,\n\"category\": null,\n\"materials\": null,\n\"recyclable\": false,\n\"authorized_recycler_required\": false,\n\"confidence\": 0\n}\n\n4. Do not guess.\n\nIf you cannot reliably determine whether the object is e-waste, use:\n\n\"status\": \"Image unclear\"\n\nand set confidence to 0.\n\n5. Possible e-waste categories include:\n\n* Mobile phone\n* Computer/Laptop\n* Keyboard/Mouse\n* Monitor/TV\n* Printer\n* Charger/Adapter\n* Cable/Wire\n* Battery\n* Circuit board/PCB\n* Electronic appliance\n* Other e-waste\n\n6. For authorized_recycler_required:\n\nSet true when specialized/authorized e-waste recycling is appropriate based on the identified item and its materials.\n\nDo not invent recycler names, prices, locations, offers, or pickup information.\n\n7. IMPORTANT:\n\nReturn ONLY valid JSON.\n\nDo not return markdown.\nDo not use ```json.\nDo not add explanations before or after the JSON.\nDo not change the field names.\nDo not replace a clearly identified category with null.\n\nThe output must contain exactly these fields:\n\nstatus\nmessage\nobject_name\ncategory\nmaterials\nrecyclable\nauthorized_recycler_required\nconfidence\n",
+        "inputType": "binary",
+        "binaryPropertyName": "image",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.googleGemini",
+      "typeVersion": 1.2,
+      "position": [
+        224,
+        0
+      ],
+      "id": "a13738d7-9fbc-4256-b93a-ad95ff4827ee",
+      "name": "Analyze an image",
+      "retryOnFail": true,
+      "waitBetweenTries": 5000
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "33eb0d12-b423-4a2f-ab3e-257b79b57c20",
+              "name": "ai_result",
+              "value": "={{ $json.content.parts[0].text }}",
+              "type": "string"
+            },
+            {
+              "id": "c9974fd6-408b-4ecf-afbf-6a9c1fe637a4",
+              "name": "latitude",
+              "value": "={{ $('Webhook').item.json.body.latitude }}",
+              "type": "string"
+            },
+            {
+              "id": "86b59653-8114-45cd-b148-63816b1ee7ba",
+              "name": "longitude",
+              "value": "={{ $('Webhook').item.json.body.longitude }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        448,
+        0
+      ],
+      "id": "1d41c5ac-1434-4027-a090-0938aec10979",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        2608,
+        0
+      ],
+      "id": "ffd4cf27-4bc8-4ffd-988b-1c11064ef7ae",
+      "name": "Respond to Webhook"
+    },
+    {
+      "parameters": {
+        "jsCode": "// EcoNex - Robust Gemini Result Parser\n\nconst input = $input.first().json;\n\n// Get Gemini response from Edit Fields\nlet raw =\n  input.ai_result ??\n  input.content?.parts?.[0]?.text ??\n  \"\";\n\n// Convert to string\nraw = String(raw).trim();\n\n// Remove markdown code fences if Gemini adds them\nraw = raw\n  .replace(/^```json\\s*/i, \"\")\n  .replace(/^```\\s*/i, \"\")\n  .replace(/\\s*```$/i, \"\")\n  .trim();\n\nlet result;\n\ntry {\n  result = JSON.parse(raw);\n} catch (error) {\n\n  return [\n    {\n      json: {\n        status: \"manual_review\",\n        object_name: null,\n        category: null,\n        materials: null,\n        recyclable: null,\n        authorized_recycler_required: null,\n        confidence: 0,\n        error: \"Unable to parse Gemini response\",\n        raw_response: raw\n      }\n    }\n  ];\n}\n\n// Return normalized result\nreturn [\n  {\n    json: {\n      status: result.status ?? null,\n      message: result.message ?? null,\n      object_name: result.object_name ?? null,\n      category: result.category ?? null,\n      materials: result.materials ?? null,\n      recyclable: result.recyclable ?? null,\n      authorized_recycler_required:\n        result.authorized_recycler_required ?? null,\n      confidence: result.confidence ?? null\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        608,
+        0
+      ],
+      "id": "37b025ab-42dd-4ce6-b972-ee121260b5ca",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Previous AI analysis result:\n\n{{ JSON.stringify($json, null, 2) }}\n\n\nYou are the Planning & Reasoning Agent of EcoNex, an e-waste recycling platform.\n\nThe previous AI node has already analyzed the uploaded image.\n\nYour job is NOT to analyze or identify the image again.\n\nYour job is to decide what EcoNex should do next using ONLY the actual analysis result provided to you.\n\nIMPORTANT:\nDo not assume, invent, or guess any missing information.\n\nThe previous AI analysis result contains these fields:\n\nstatus\nobject_name\ncategory\nmaterials\nrecyclable\nauthorized_recycler_required\nconfidence\n\nDECISION RULES:\n\n1. If the previous AI analysis says that e-waste is NOT detected:\n   - status = \"success\"\n   - decision = \"No e-waste detected\"\n   - recycler_required = false\n   - required_authorization = false\n\n2. If e-waste IS detected and the information is sufficiently clear:\n   - status = \"success\"\n   - decision = \"Proceed to recycler matching\"\n   - Preserve the actual category from the previous AI analysis.\n   - Preserve the actual materials from the previous AI analysis.\n   - Set recycler_required = true.\n   - Determine required_authorization using the previous AI result and the nature of the e-waste.\n   - For hazardous, battery-containing, complex electronic, or regulated e-waste, authorized recycling should normally be required.\n   - Do not invent recycler names, prices, distances, locations, pickup availability, or offers.\n\n3. If the previous AI result is unclear, contradictory, missing important fields, or has low confidence:\n   - status = \"manual_review\"\n   - decision = \"Manual review required\"\n   - Do not guess category, materials, recycler, price, location, or authorization.\n\n4. IMPORTANT DATA PRESERVATION RULE:\n   If the previous AI analysis provides:\n   category = \"Computer/Laptop\"\n   then the output MUST contain:\n   category = \"Computer/Laptop\"\n\n   Do not replace a valid category with \"None\".\n\n   If the previous AI analysis provides valid materials, preserve them exactly.\n\n5. Recycler information will be supplied by a separate Recycler Database node.\n   You must NOT create or fabricate recycler information.\n\n6. Your output will be passed to a Recycler Matching node.\n   Therefore, the output must contain enough structured information for recycler matching.\n\n7. Return ONLY valid JSON.\n   Do not use markdown.\n   Do not use ```json.\n   Do not add explanations outside the JSON.\n\nOUTPUT FORMAT FOR VALID E-WASTE:\n\n{\n  \"status\": \"success\",\n  \"decision\": \"Proceed to recycler matching\",\n  \"category\": \"Computer/Laptop\",\n  \"materials\": \"Lithium-ion battery, circuit board/PCB, plastic and metal chassis, LCD screen, processor, RAM, copper wiring.\",\n  \"recycler_required\": true,\n  \"required_authorization\": true,\n  \"confidence\": 98,\n  \"reason\": \"The item was identified as e-waste with sufficient confidence and should proceed to authorized recycler matching.\"\n}\n\nOUTPUT FORMAT FOR NON-E-WASTE:\n\n{\n  \"status\": \"success\",\n  \"decision\": \"No e-waste detected\",\n  \"category\": null,\n  \"materials\": null,\n  \"recycler_required\": false,\n  \"required_authorization\": false,\n  \"confidence\": 98,\n  \"reason\": \"The previous AI analysis determined that the submitted item is not e-waste.\"\n}\n\nOUTPUT FORMAT FOR UNCERTAIN RESULT:\n\n{\n  \"status\": \"manual_review\",\n  \"decision\": \"Manual review required\",\n  \"category\": null,\n  \"materials\": null,\n  \"recycler_required\": null,\n  \"required_authorization\": null,\n  \"confidence\": 0,\n  \"reason\": \"The previous AI analysis does not provide sufficiently reliable information.\"\n}",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        832,
+        0
+      ],
+      "id": "6d96fe48-3a07-4346-9d9c-e2f8b5a7839e",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-3.5-flash-lite",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1.1,
+      "position": [
+        704,
+        208
+      ],
+      "id": "dda93b52-bf12-426a-beb6-2a4849b4376f",
+      "name": "Google Gemini Chat Model"
+    },
+    {
+      "parameters": {
+        "jsCode": "const raw = $json.output;\n\nconst cleaned = raw\n  .replace(/```json/g, \"\")\n  .replace(/```/g, \"\")\n  .trim();\n\nconst planning = JSON.parse(cleaned);\n\n// Get GPS from Edit Fields\nconst editFields = $('Edit Fields').first().json;\n\nreturn [\n  {\n    json: {\n      ...planning,\n      latitude: editFields.latitude,\n      longitude: editFields.longitude\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1232,
+        0
+      ],
+      "id": "7789eb13-903b-4288-afb8-a372cf5a9a2c",
+      "name": "Parse Planning Result"
+    },
+    {
+      "parameters": {
+        "jsCode": "// EcoNex - Demo Recycler Database\n// NOTE: This is prototype/demo data, not verified real-world recycler data.\n\nconst planning = $input.first().json;\n\n// Demo recycler database\nconst recyclers = [\n  {\n    recycler_id: \"R001\",\n    recycler_name: \"Demo Recycler A\",\n    authorized: true,\n    accepted_categories: [\"Computer/Laptop\", \"Mobile\", \"Battery\"],\n    pricing: {\n      \"Computer/Laptop\": 120,\n      \"Mobile\": 180,\n      \"Battery\": 90\n    },\n    pickup_available: true,\n\n    location: \"Nashik\",\n    latitude: 19.9975,\n    longitude: 73.7898,\n\n    service_radius_km: 100\n  },\n\n  {\n    recycler_id: \"R002\",\n    recycler_name: \"Demo Recycler B\",\n    authorized: true,\n    accepted_categories: [\"Computer/Laptop\", \"Mobile\"],\n    pricing: {\n      \"Computer/Laptop\": 110,\n      \"Mobile\": 160\n    },\n    pickup_available: false,\n\n    location: \"Pune\",\n    latitude: 18.5204,\n    longitude: 73.8567,\n\n    service_radius_km: 100\n  },\n\n  {\n    recycler_id: \"R003\",\n    recycler_name: \"Demo Recycler C\",\n    authorized: true,\n    accepted_categories: [\"Computer/Laptop\", \"Printer\", \"Monitor\"],\n    pricing: {\n      \"Computer/Laptop\": 115,\n      \"Printer\": 100,\n      \"Monitor\": 105\n    },\n    pickup_available: true,\n\n    location: \"Aurangabad\",\n    latitude: 19.8762,\n    longitude: 75.3433,\n\n    service_radius_km: 100\n  },\n\n  {\n    recycler_id: \"R004\",\n    recycler_name: \"Demo Recycler D\",\n    authorized: false,\n    accepted_categories: [\"Computer/Laptop\", \"Mobile\"],\n    pricing: {\n      \"Computer/Laptop\": 130,\n      \"Mobile\": 170\n    },\n    pickup_available: true,\n\n    location: \"Ahmednagar\",\n    latitude: 19.0948,\n    longitude: 74.7480,\n\n    service_radius_km: 100\n  }\n];\n\n// Return planning result + recycler database\nreturn [\n  {\n    json: {\n      planning_result: planning,\n      recycler_database: recyclers\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1456,
+        0
+      ],
+      "id": "46f355de-64fa-498f-bd63-773c38c455ce",
+      "name": "Recycler Database"
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = $input.first().json;\n\nconst planning = data.planning_result;\nconst recyclers = data.recycler_database || [];\n\nconst category = planning.category;\nconst authorizationRequired =\n  planning.required_authorization ?? planning.recycler_required;\n\n// Filter suitable recyclers\nconst eligibleRecyclers = recyclers.filter(recycler => {\n\n  // Category match\n  const categoryMatch =\n    Array.isArray(recycler.accepted_categories) &&\n    recycler.accepted_categories.includes(category);\n\n  // Authorization check\n  const authorizationMatch =\n    authorizationRequired !== true ||\n    recycler.authorized === true;\n\n  return categoryMatch && authorizationMatch;\n});\n\n// Prepare collector-friendly options\nconst recyclerOptions = eligibleRecyclers.map(recycler => {\n\n  // Get price for the detected category\n  const price =\n    recycler.pricing &&\n    typeof recycler.pricing[category] !== \"undefined\"\n      ? recycler.pricing[category]\n      : null;\n\n  return {\n    recycler_id: recycler.recycler_id,\n    recycler_name: recycler.recycler_name,\n    authorized: recycler.authorized,\n    category_accepted: category,\n    price: price,\n    pickup_available: recycler.pickup_available,\n    location: recycler.location,\n    service_radius_km: recycler.service_radius_km,\n\n    // IMPORTANT: Keep recycler GPS coordinates\n    latitude: recycler.latitude,\n    longitude: recycler.longitude\n  };\n});\n\nreturn [\n  {\n    json: {\n      status: planning.status,\n      decision: planning.decision,\n      category: category,\n      confidence: planning.confidence,\n      recycler_required: planning.recycler_required,\n      required_authorization: authorizationRequired,\n\n      // Keep collector GPS\n      collector_latitude: planning.latitude,\n      collector_longitude: planning.longitude,\n\n      suitable_recyclers_count: recyclerOptions.length,\n      suitable_recyclers: recyclerOptions\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1680,
+        0
+      ],
+      "id": "c923e910-e17e-445c-a9e6-8ef227578306",
+      "name": "Recycler Matching"
+    },
+    {
+      "parameters": {
+        "jsCode": "const recyclerResult = $input.first().json;\n\n// AI result from the previous Code node\nconst aiResult = $('Code in JavaScript').first().json;\n\nreturn [\n  {\n    json: {\n      status: recyclerResult.status,\n      message: aiResult.message,\n\n      // AI analysis\n      object_name: aiResult.object_name,\n      category: recyclerResult.category,\n      materials: aiResult.materials,\n      recyclable: aiResult.recyclable,\n      authorized_recycler_required:\n        aiResult.authorized_recycler_required,\n      confidence: recyclerResult.confidence,\n\n      // Planning\n      decision: recyclerResult.decision,\n      recycler_required: recyclerResult.recycler_required,\n      required_authorization:\n        recyclerResult.required_authorization,\n\n      // Recycler matching\n      suitable_recyclers_count:\n        recyclerResult.suitable_recyclers_count,\n      suitable_recyclers:\n        recyclerResult.suitable_recyclers\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2352,
+        0
+      ],
+      "id": "e2ff484e-9d95-49fa-ab56-16b99250fecb",
+      "name": "Combine AI + Recycler Result"
+    },
+    {
+      "parameters": {
+        "jsCode": "// EcoNex - Calculate Actual Distance\n\nfunction calculateDistance(lat1, lon1, lat2, lon2) {\n  const R = 6371; // Earth radius in km\n\n  const dLat = (lat2 - lat1) * Math.PI / 180;\n  const dLon = (lon2 - lon1) * Math.PI / 180;\n\n  const a =\n    Math.sin(dLat / 2) ** 2 +\n    Math.cos(lat1 * Math.PI / 180) *\n    Math.cos(lat2 * Math.PI / 180) *\n    Math.sin(dLon / 2) ** 2;\n\n  const c = 2 * Math.atan2(\n    Math.sqrt(a),\n    Math.sqrt(1 - a)\n  );\n\n  return R * c;\n}\n\n\n// Get Recycler Matching output\nconst data = $input.first().json;\n\n// Collector GPS\nconst collectorLat = Number(data.collector_latitude);\nconst collectorLon = Number(data.collector_longitude);\n\nif (\n  !Number.isFinite(collectorLat) ||\n  !Number.isFinite(collectorLon)\n) {\n  throw new Error(\"Collector GPS coordinates are missing or invalid.\");\n}\n\n\n// Recycler list\nconst recyclers = data.suitable_recyclers || [];\n\nconst updatedRecyclers = recyclers.map(recycler => {\n\n  const recyclerLat = Number(recycler.latitude);\n  const recyclerLon = Number(recycler.longitude);\n\n  if (\n    !Number.isFinite(recyclerLat) ||\n    !Number.isFinite(recyclerLon)\n  ) {\n    return {\n      ...recycler,\n      distance_km: null\n    };\n  }\n\n  const distance = calculateDistance(\n    collectorLat,\n    collectorLon,\n    recyclerLat,\n    recyclerLon\n  );\n\n  return {\n    ...recycler,\n    distance_km: Number(distance.toFixed(2))\n  };\n});\n\n\nreturn [\n  {\n    json: {\n      ...data,\n      suitable_recyclers: updatedRecyclers\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1904,
+        0
+      ],
+      "id": "501a7f96-773a-46d9-a838-adc09624ddd3",
+      "name": "Calculate Distance"
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = $input.first().json;\n\nconst recyclers = data.suitable_recyclers || [];\n\nconst eligibleRecyclers = recyclers.filter(recycler => {\n\n  const distance = Number(recycler.distance_km);\n  const radius = Number(recycler.service_radius_km);\n\n  return (\n    Number.isFinite(distance) &&\n    Number.isFinite(radius) &&\n    distance <= radius\n  );\n});\n\nreturn [\n  {\n    json: {\n      ...data,\n      suitable_recyclers: eligibleRecyclers,\n      suitable_recyclers_count: eligibleRecyclers.length\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2128,
+        0
+      ],
+      "id": "3ac822a8-9821-4028-8f40-1349e23e9f61",
+      "name": "Filter Eligible Recyclers"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Analyze an image",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Analyze an image": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Parse Planning Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Planning Result": {
+      "main": [
+        [
+          {
+            "node": "Recycler Database",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Recycler Database": {
+      "main": [
+        [
+          {
+            "node": "Recycler Matching",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Recycler Matching": {
+      "main": [
+        [
+          {
+            "node": "Calculate Distance",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Combine AI + Recycler Result": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calculate Distance": {
+      "main": [
+        [
+          {
+            "node": "Filter Eligible Recyclers",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter Eligible Recyclers": {
+      "main": [
+        [
+          {
+            "node": "Combine AI + Recycler Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "5087eb0a-9c60-43bf-aeea-76202843b532",
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "nodeGroups": [],
+  "id": "4qv5aLgOT22m9VWF",
+  "tags": []
+}
