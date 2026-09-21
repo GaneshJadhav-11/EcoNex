@@ -899,6 +899,87 @@ function renderStatusChart() {
 
 
 /* =====================================
+   LOAD ACTIVITY LEDGER
+===================================== */
+function loadActivityLedger() {
+    const container = document.getElementById("activityContainer");
+    if (!container) return;
+
+    let offers = [];
+    let lots = [];
+
+    try {
+        offers = JSON.parse(localStorage.getItem("offers")) || [];
+        lots = JSON.parse(localStorage.getItem("lots")) || [];
+    } catch (e) {
+        console.error("Failed to parse data for ledger:", e);
+        container.innerHTML = '<p style="color: var(--muted); font-size: 14px;">Error loading marketplace activity.</p>';
+        return;
+    }
+
+    if (offers.length === 0) {
+        container.innerHTML = '<p style="color: var(--muted); font-size: 14px;">No marketplace activity available.</p>';
+        return;
+    }
+
+    // Sort newest first
+    offers.sort((a, b) => {
+        const dateA = new Date(a.createdAt);
+        const dateB = new Date(b.createdAt);
+        if (!isNaN(dateA) && !isNaN(dateB)) {
+            return dateB - dateA;
+        }
+        return 0; // fallback if dates are malformed
+    });
+
+    let tableHTML = `
+        <table class="admin-table">
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Offer ID</th>
+                    <th>Lot ID</th>
+                    <th>Material</th>
+                    <th>Weight</th>
+                    <th>Recycler</th>
+                    <th>Value</th>
+                    <th>Pickup</th>
+                </tr>
+            </thead>
+            <tbody>
+    `;
+
+    offers.forEach(offer => {
+        const matchingLot = lots.find(lot => lot.id === offer.lotId);
+        const material = matchingLot && matchingLot.material ? matchingLot.material : "Unknown Lot";
+        const weight = matchingLot && matchingLot.weight ? matchingLot.weight + " kg" : "---";
+        const dateObj = new Date(offer.createdAt);
+        const dateStr = !isNaN(dateObj) ? dateObj.toLocaleDateString() + ' ' + dateObj.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : String(offer.createdAt || "Unknown");
+
+        tableHTML += `
+            <tr>
+                <td><small>${dateStr}</small></td>
+                <td><strong>${offer.id || "---"}</strong></td>
+                <td><small>${offer.lotId || "---"}</small></td>
+                <td><span class="badge" style="background: #eaf8f3; color: #056044;">${material}</span></td>
+                <td>${weight}</td>
+                <td>${offer.recycler || "---"}</td>
+                <td><strong>$${Number(offer.price || 0).toFixed(2)}</strong></td>
+                <td>${offer.pickup || "Not specified"}</td>
+            </tr>
+        `;
+    });
+
+    tableHTML += `
+            </tbody>
+        </table>
+    `;
+
+    container.innerHTML = tableHTML;
+}
+
+
+/* =====================================
    START
 ===================================== */
 
@@ -907,6 +988,8 @@ loadDashboardStats();
 renderCharts();
 
 renderStatusChart();
+
+loadActivityLedger();
 
 loadRecycler();
 

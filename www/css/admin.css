@@ -87,8 +87,50 @@
 /* Responsive adjustments */
 @media (max-width: 900px) {
     .admin-page .charts-grid {
-        grid-template-columns: 1fr;
-    }
+    grid-template-columns: 1fr;
+}
+}
+
+/*
+ * Ledger Table Styles
+ */
+.admin-page #dashboardActivity {
+    padding: 31px;
+    border-radius: 20px;
+}
+
+.admin-page .admin-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    min-width: 800px; /* Forces scroll on small screens */
+}
+
+.admin-page .admin-table th {
+    background: #f7fbf8;
+    color: var(--muted, #6b7f78);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-size: 11px;
+    padding: 12px 14px;
+    border-bottom: 2px solid #e2ebe4;
+}
+
+.admin-page .admin-table td {
+    padding: 14px;
+    border-bottom: 1px solid #eef5f1;
+    color: var(--text, #17332b);
+    font-size: 14px;
+    vertical-align: middle;
+}
+
+.admin-page .admin-table tr:last-child td {
+    border-bottom: none;
+}
+
+.admin-page .admin-table tr:hover td {
+    background: #f9fdfa;
 }
 @media (max-width: 700px) {
     .admin-page #adminDashboard .stats {
